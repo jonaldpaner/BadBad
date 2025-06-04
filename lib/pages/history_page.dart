@@ -72,6 +72,15 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
         contentType: 'type',
         message: 'Did you finish the report?',
       ),
+      const HistoryCardWidget(
+        contentType: 'type',
+        message: 'Did you finish the report?',
+      ),
+      const HistoryCardWidget(
+        contentType: 'type',
+        message: 'Did you finish the report?',
+      ),
+
     ];
 
     final List<Widget> lastWeekHistory = [
@@ -79,6 +88,39 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
         contentType: 'type',
         message: 'Did you finish the report?',
       ),
+      const HistoryCardWidget(
+        contentType: 'type',
+        message: 'Did you finish the report?',
+      ),
+      const HistoryCardWidget(
+        contentType: 'type',
+        message: 'Did you finish the report?',
+      ),
+      const HistoryCardWidget(
+        contentType: 'type',
+        message: 'Did you finish the report?',
+      ),const HistoryCardWidget(
+        contentType: 'type',
+        message: 'Did you finish the report?',
+      ),
+      const HistoryCardWidget(
+        contentType: 'type',
+        message: 'Did you finish the report?',
+      ),
+      const HistoryCardWidget(
+        contentType: 'type',
+        message: 'Did you finish the report?',
+      ),
+      const HistoryCardWidget(
+        contentType: 'type',
+        message: 'Did you finish the report?',
+      ),
+      const HistoryCardWidget(
+        contentType: 'type',
+        message: 'Did you finish the report?',
+      ),
+
+
     ];
 
     return GestureDetector(
@@ -117,8 +159,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
             ),
           ],
         ),
-        body: SafeArea(
-          top: true,
+        body: SafeArea( // <--- Change this line
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(

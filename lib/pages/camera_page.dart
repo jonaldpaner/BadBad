@@ -8,45 +8,52 @@ class CameraPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
         ),
-        title: const Align(
-          alignment: Alignment.centerRight,
-          child: Text(
-            'Take a picture',
-            style: TextStyle(color: Colors.black),
+        title: const Text(
+          'Take a Picture',
+          style: TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w600,
+            fontSize: 18,
           ),
         ),
-        centerTitle: false,
+        centerTitle: true,
       ),
-      body: Column(
-        children: [
-          const Expanded(
-            child: CameraPreviewPlaceholder(),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 20.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Icon(Icons.photo_library, size: 30, color: Colors.black),
-                SizedBox(width: 40),
-                CaptureButton(),
-                SizedBox(width: 40),
-                SizedBox(width: 30),
-              ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            const Expanded(
+              child: CameraPreviewPlaceholder(),
             ),
-          ),
-          const LanguageSelector(),
-        ],
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.photo_library_outlined, size: 30, color: Colors.black),
+                  SizedBox(width: 40),
+                  CaptureButton(),
+                  SizedBox(width: 40),
+                  Icon(Icons.flash_off, size: 30, color: Colors.black), // placeholder icon
+                ],
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 20.0),
+              child: LanguageSelector(),
+            ),
+          ],
+        ),
       ),
     );
   }

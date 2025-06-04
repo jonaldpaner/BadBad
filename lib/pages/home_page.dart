@@ -95,78 +95,84 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      body: Stack(
-        children: [
-          // Background gradient
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.bottomLeft,
-                end: Alignment.topRight,
-                colors: [
-                  Colors.white,
-                  Color(0xFFe2f3f9),
-                  Color(0xFFb8e1f1),
-                ],
-                stops: [0.0, 0.5, 1.0],
+      body: SafeArea(  // 👈 This ensures no conflicts with system bars
+        child: Stack(
+          children: [
+            // Background gradient
+            Container(
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.bottomLeft,
+                  end: Alignment.topRight,
+                  colors: [
+                    Colors.white,
+                    Color(0xFFe2f3f9),
+                    Color(0xFFb8e1f1),
+                  ],
+                  stops: [0.0, 0.5, 1.0],
+                ),
               ),
             ),
-          ),
 
-          // Top bar
-          Align(
-            alignment: Alignment.topCenter,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 16, left: 8, right: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.menu_rounded),
-                    onPressed: () => scaffoldKey.currentState?.openDrawer(),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.person_outline),
-                    onPressed: () {
-                      showDialog(
-                        context: context,
-                        builder: (context) => const LoginSignUpDialog(),
-                      );
-                    },
-                  ),
-                ],
+            // Top bar
+            Align(
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 16, left: 8, right: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.menu_rounded),
+                      onPressed: () => scaffoldKey.currentState?.openDrawer(),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.person_outline),
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const LoginSignUpDialog(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
-          // Use your new TranslationInputCard component here
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: TranslationInputCard(
-              fromLanguage: fromLanguage,
-              onToggleLanguages: toggleLanguages,
-              textController: textController,
-              focusNode: textFieldFocusNode,
-              onCameraPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CameraPage(),
-                  ),
-                );
-              },
-              onTranslatePressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const TranslationPage(),
-                  ),
-                );
-              },
+            // Translation input card
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8.0), // Small spacing from nav bar
+                child: TranslationInputCard(
+                  fromLanguage: fromLanguage,
+                  onToggleLanguages: toggleLanguages,
+                  textController: textController,
+                  focusNode: textFieldFocusNode,
+                  onCameraPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CameraPage(),
+                      ),
+                    );
+                  },
+                  onTranslatePressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const TranslationPage(),
+                      ),
+                    );
+                  },
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
+
 }

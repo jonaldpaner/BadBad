@@ -89,7 +89,6 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
           ],
         ),
         body: SafeArea(
-          top: true,
           child: Row(
             children: [
               Expanded(
