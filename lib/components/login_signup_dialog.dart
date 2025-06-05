@@ -1,7 +1,12 @@
 import 'package:flutter/material.dart';
 
 class LoginSignUpDialog extends StatefulWidget {
-  const LoginSignUpDialog({Key? key}) : super(key: key);
+  final VoidCallback onLogin;
+
+  const LoginSignUpDialog({
+    Key? key,
+    required this.onLogin,
+  }) : super(key: key);
 
   @override
   _LoginSignUpDialogState createState() => _LoginSignUpDialogState();
@@ -14,8 +19,9 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
-  // Additional signup fields if needed
-  final TextEditingController confirmPasswordController = TextEditingController();
+  // Additional signup field
+  final TextEditingController confirmPasswordController =
+  TextEditingController();
 
   @override
   void dispose() {
@@ -38,11 +44,12 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
   void submit() {
     if (_formKey.currentState!.validate()) {
       if (isLogin) {
-        // TODO: Handle login logic here
-        Navigator.of(context).pop(); // close dialog
+        // When logging in, invoke the callback to notify HomePage
+        widget.onLogin();
+        Navigator.of(context).pop();
       } else {
-        // TODO: Handle sign up logic here
-        Navigator.of(context).pop(); // close dialog
+        // TODO: Handle sign-up logic here if needed
+        Navigator.of(context).pop();
       }
     }
   }
@@ -50,7 +57,9 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Center(child: Text(isLogin ? 'Login' : 'Sign Up')),
+      title: Center(
+        child: Text(isLogin ? 'Login' : 'Sign Up'),
+      ),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(
@@ -59,8 +68,8 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
             children: [
               Text(
                 isLogin
-                    ? 'Hello, again! Enter your username and password below.'
-                    : 'Welcome! Enter a username and password below.',
+                    ? 'Hello, again! Enter your email and password below.'
+                    : 'Welcome! Enter an email and password to sign up.',
                 style: TextStyle(
                   color: Colors.grey[700],
                   fontSize: 14,
@@ -73,8 +82,12 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                 decoration: const InputDecoration(labelText: 'Email'),
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Please enter email';
-                  if (!RegExp(r'\S+@\S+\.\S+').hasMatch(value)) return 'Enter a valid email';
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter email';
+                  }
+                  if (!RegExp(r'\S+@\S+\.\S+').hasMatch(value)) {
+                    return 'Enter a valid email';
+                  }
                   return null;
                 },
               ),
@@ -84,8 +97,12 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                 decoration: const InputDecoration(labelText: 'Password'),
                 obscureText: true,
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Please enter password';
-                  if (value.length < 6) return 'Password must be at least 6 characters';
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter password';
+                  }
+                  if (value.length < 6) {
+                    return 'Password must be at least 6 characters';
+                  }
                   return null;
                 },
               ),
@@ -93,31 +110,36 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: confirmPasswordController,
-                  decoration: const InputDecoration(labelText: 'Confirm Password'),
+                  decoration:
+                  const InputDecoration(labelText: 'Confirm Password'),
                   obscureText: true,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please confirm password';
-                    if (value != passwordController.text) return 'Passwords do not match';
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm password';
+                    }
+                    if (value != passwordController.text) {
+                      return 'Passwords do not match';
+                    }
                     return null;
                   },
                 ),
               ],
               const SizedBox(height: 16),
-
-
               TextButton(
                 onPressed: toggleForm,
                 child: RichText(
                   text: TextSpan(
                     children: [
                       TextSpan(
-                        text: isLogin ? "Don't have an account? " : "Already have an account? ",
+                        text: isLogin
+                            ? "Don't have an account? "
+                            : "Already have an account? ",
                         style: const TextStyle(color: Colors.black),
                       ),
                       TextSpan(
                         text: isLogin ? "Sign Up" : "Login",
                         style: const TextStyle(
-                          color: Color.fromRGBO(33, 158, 188, 1), // blue color
+                          color: Color.fromRGBO(33, 158, 188, 1), // blue
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -125,7 +147,6 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                   ),
                 ),
               ),
-
               ElevatedButton(
                 onPressed: submit,
                 style: ElevatedButton.styleFrom(
@@ -137,13 +158,10 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
-
             ],
           ),
         ),
       ),
-      // Remove actions:
-      // actions: [],
     );
   }
 }
