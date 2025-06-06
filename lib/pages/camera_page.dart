@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:camera/camera.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import '../components/capture_button.dart';
 import '../components/language_selector.dart';
@@ -12,11 +15,36 @@ class CameraPage extends StatefulWidget {
 }
 
 class _CameraPageState extends State<CameraPage> {
-  final ImagePicker _picker = ImagePicker();
+  late CameraController _cameraController;
+  late List<CameraDescription> _cameras;
+  bool _isCameraInitialized = false;
   bool _isFlashOn = false;
+  final ImagePicker _picker = ImagePicker();
+  final TextRecognizer _textRecognizer = TextRecognizer();
+
+  @override
+  void initState() {
+    super.initState();
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    _cameras = await availableCameras();
+    _cameraController = CameraController(_cameras[0], ResolutionPreset.medium);
+    await _cameraController.initialize();
+    setState(() {
+      _isCameraInitialized = true;
+    });
+  }
+
+  @override
+  void dispose() {
+    _cameraController.dispose();
+    _textRecognizer.close();
+    super.dispose();
+  }
 
   Future<void> _pickImageFromGallery() async {
-    print('Gallery icon tapped!');
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
@@ -34,10 +62,47 @@ class _CameraPageState extends State<CameraPage> {
     setState(() {
       _isFlashOn = !_isFlashOn;
     });
-    print('Flash is now ${_isFlashOn ? 'ON' : 'OFF'}');
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Flash turned ${_isFlashOn ? 'ON' : 'OFF'}')),
+      SnackBar(content: Text('Flash will be used when capturing photo')),
     );
+  }
+
+  Future<void> _captureAndRecognizeText() async {
+    if (!_cameraController.value.isInitialized || _cameraController.value.isTakingPicture) {
+      return;
+    }
+
+    try {
+      if (_isFlashOn) {
+        await _cameraController.setFlashMode(FlashMode.torch);
+      } else {
+        await _cameraController.setFlashMode(FlashMode.off);
+      }
+
+      final XFile picture = await _cameraController.takePicture();
+      await _cameraController.setFlashMode(FlashMode.off);
+
+      final inputImage = InputImage.fromFilePath(picture.path);
+      final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Recognized Text'),
+          content: SingleChildScrollView(
+            child: Text(recognizedText.text.isNotEmpty ? recognizedText.text : 'No text found'),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+          ],
+        ),
+      );
+    } catch (e) {
+      print('Error capturing photo or recognizing text: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 
   @override
@@ -63,15 +128,25 @@ class _CameraPageState extends State<CameraPage> {
       body: SafeArea(
         child: Column(
           children: [
-            const Expanded(
-              child: CameraPreviewPlaceholder(),
+            // Camera preview or placeholder with bottom rounded corners
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+                child: _isCameraInitialized
+                    ? CameraPreview(_cameraController)
+                    : const CameraPreviewPlaceholder(),
+              ),
             ),
+
+            // Buttons Row
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 30),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Gallery Button
                   InkWell(
                     onTap: _pickImageFromGallery,
                     borderRadius: BorderRadius.circular(50),
@@ -80,7 +155,7 @@ class _CameraPageState extends State<CameraPage> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white,
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
                             color: Colors.black12,
                             blurRadius: 6,
@@ -91,11 +166,7 @@ class _CameraPageState extends State<CameraPage> {
                       child: const Icon(Icons.photo_library_outlined, size: 28),
                     ),
                   ),
-
-                  // Capture Button
-                  const CaptureButton(),
-
-                  // Flash Toggle Button
+                  CaptureButton(onTap: _captureAndRecognizeText),
                   InkWell(
                     onTap: _toggleFlash,
                     borderRadius: BorderRadius.circular(50),
@@ -104,7 +175,7 @@ class _CameraPageState extends State<CameraPage> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Colors.white,
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
                             color: Colors.black12,
                             blurRadius: 6,
@@ -122,7 +193,7 @@ class _CameraPageState extends State<CameraPage> {
               ),
             ),
 
-            // Language Switch Section
+            // Language selector box
             Padding(
               padding: const EdgeInsets.only(bottom: 30.0),
               child: Container(
@@ -131,7 +202,7 @@ class _CameraPageState extends State<CameraPage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(30),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black12,
                       blurRadius: 8,
@@ -139,7 +210,7 @@ class _CameraPageState extends State<CameraPage> {
                     ),
                   ],
                 ),
-                child: const LanguageSelector(), // You can customize this further
+                child: const LanguageSelector(),
               ),
             ),
           ],

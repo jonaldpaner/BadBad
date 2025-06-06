@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 
 class CaptureButton extends StatelessWidget {
-  const CaptureButton({super.key});
+  final VoidCallback onTap;
+  const CaptureButton({super.key, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        print('Capture button pressed!');
-      },
+      onTap: onTap,
       child: Container(
         width: 70,
         height: 70,
