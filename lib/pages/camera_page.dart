@@ -30,7 +30,7 @@ class _CameraPageState extends State<CameraPage> {
 
   Future<void> _initCamera() async {
     _cameras = await availableCameras();
-    _cameraController = CameraController(_cameras[0], ResolutionPreset.medium);
+    _cameraController = CameraController(_cameras[0], ResolutionPreset.high);
     await _cameraController.initialize();
     setState(() {
       _isCameraInitialized = true;
@@ -48,7 +48,6 @@ class _CameraPageState extends State<CameraPage> {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        print('Picked image path: ${image.path}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Picked image: ${image.name}')),
         );
@@ -58,13 +57,29 @@ class _CameraPageState extends State<CameraPage> {
     }
   }
 
-  void _toggleFlash() {
-    setState(() {
-      _isFlashOn = !_isFlashOn;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Flash will be used when capturing photo')),
-    );
+  Future<void> _toggleFlash() async {
+    try {
+      if (_isFlashOn) {
+        await _cameraController.setFlashMode(FlashMode.off);
+      } else {
+        await _cameraController.setFlashMode(FlashMode.torch);
+      }
+
+      setState(() {
+        _isFlashOn = !_isFlashOn;
+      });
+
+      final flashMessage = _isFlashOn ? 'Flash is turned ON' : 'Flash is turned OFF';
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(flashMessage)),
+      );
+    } catch (e) {
+      print('Flash toggle error: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to toggle flash: $e')),
+      );
+    }
   }
 
   Future<void> _captureAndRecognizeText() async {
@@ -107,114 +122,125 @@ class _CameraPageState extends State<CameraPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Take a Picture',
-          style: TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Camera preview or placeholder with bottom rounded corners
-            Expanded(
-              child: ClipRRect(
+      body: Stack(
+        children: [
+          Column(
+            children: [
+              // Camera preview with rounded bottom
+              ClipRRect(
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(30),
                   bottomRight: Radius.circular(30),
                 ),
-                child: _isCameraInitialized
-                    ? CameraPreview(_cameraController)
-                    : const CameraPreviewPlaceholder(),
+                child: SizedBox(
+                  height: screenHeight * 0.70,  // <-- changed here
+                  width: double.infinity,
+                  child: _isCameraInitialized
+                      ? CameraPreview(_cameraController)
+                      : const CameraPreviewPlaceholder(),
+                ),
               ),
-            ),
-
-            // Buttons Row
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 30),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  InkWell(
-                    onTap: _pickImageFromGallery,
-                    borderRadius: BorderRadius.circular(50),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 6,
-                            offset: Offset(0, 3),
+              // Bottom section with buttons and language selector
+              Expanded(
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        vertical: screenHeight * 0.02,
+                        horizontal: screenWidth * 0.08,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildIconButton(
+                            icon: Icons.photo_library_outlined,
+                            size: screenWidth * 0.07,
+                            onTap: _pickImageFromGallery,
+                          ),
+                          CaptureButton(onTap: _captureAndRecognizeText),
+                          _buildIconButton(
+                            icon: _isFlashOn ? Icons.flash_on : Icons.flash_off,
+                            size: screenWidth * 0.07,
+                            onTap: _toggleFlash,
                           ),
                         ],
                       ),
-                      child: const Icon(Icons.photo_library_outlined, size: 28),
                     ),
-                  ),
-                  CaptureButton(onTap: _captureAndRecognizeText),
-                  InkWell(
-                    onTap: _toggleFlash,
-                    borderRadius: BorderRadius.circular(50),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black12,
-                            blurRadius: 6,
-                            offset: Offset(0, 3),
-                          ),
-                        ],
+                    Padding(
+                      padding: EdgeInsets.only(bottom: screenHeight * 0.025),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.05,
+                          vertical: screenHeight * 0.015,
+                        ),
+                        margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black12,
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const LanguageSelector(),
                       ),
-                      child: Icon(
-                        _isFlashOn ? Icons.flash_on : Icons.flash_off,
-                        size: 28,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Language selector box
-            Padding(
-              padding: const EdgeInsets.only(bottom: 30.0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                margin: const EdgeInsets.symmetric(horizontal: 40),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(30),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 8,
-                      offset: Offset(0, 4),
                     ),
                   ],
                 ),
-                child: const LanguageSelector(),
               ),
+            ],
+          ),
+
+          // Transparent AppBar overlaid on top
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: const Text(
+                'Take a Picture',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+              centerTitle: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIconButton({required IconData icon, required double size, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(50),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 6,
+              offset: Offset(0, 3),
             ),
           ],
         ),
+        child: Icon(icon, size: size),
       ),
     );
   }

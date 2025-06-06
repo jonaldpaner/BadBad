@@ -56,9 +56,18 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    double fontSize = screenWidth * 0.04; // scales with screen width
+    double verticalSpacing = screenHeight * 0.015;
+
     return AlertDialog(
       title: Center(
-        child: Text(isLogin ? 'Login' : 'Sign Up'),
+        child: Text(
+          isLogin ? 'Login' : 'Sign Up',
+          style: TextStyle(fontSize: fontSize + 2, fontWeight: FontWeight.bold),
+        ),
       ),
       content: Form(
         key: _formKey,
@@ -72,15 +81,16 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                     : 'Welcome! Enter an email and password to sign up.',
                 style: TextStyle(
                   color: Colors.grey[700],
-                  fontSize: 14,
+                  fontSize: fontSize,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: verticalSpacing * 1.5),
               TextFormField(
                 controller: emailController,
                 decoration: const InputDecoration(labelText: 'Email'),
                 keyboardType: TextInputType.emailAddress,
+                style: TextStyle(fontSize: fontSize),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter email';
@@ -91,11 +101,12 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: verticalSpacing),
               TextFormField(
                 controller: passwordController,
                 decoration: const InputDecoration(labelText: 'Password'),
                 obscureText: true,
+                style: TextStyle(fontSize: fontSize),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter password';
@@ -107,12 +118,13 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                 },
               ),
               if (!isLogin) ...[
-                const SizedBox(height: 12),
+                SizedBox(height: verticalSpacing),
                 TextFormField(
                   controller: confirmPasswordController,
                   decoration:
                   const InputDecoration(labelText: 'Confirm Password'),
                   obscureText: true,
+                  style: TextStyle(fontSize: fontSize),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please confirm password';
@@ -124,7 +136,7 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                   },
                 ),
               ],
-              const SizedBox(height: 16),
+              SizedBox(height: verticalSpacing * 1.5),
               TextButton(
                 onPressed: toggleForm,
                 child: RichText(
@@ -134,13 +146,14 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                         text: isLogin
                             ? "Don't have an account? "
                             : "Already have an account? ",
-                        style: const TextStyle(color: Colors.black),
+                        style: TextStyle(color: Colors.black, fontSize: fontSize),
                       ),
                       TextSpan(
                         text: isLogin ? "Sign Up" : "Login",
-                        style: const TextStyle(
-                          color: Color.fromRGBO(33, 158, 188, 1), // blue
+                        style: TextStyle(
+                          color: const Color.fromRGBO(33, 158, 188, 1),
                           fontWeight: FontWeight.bold,
+                          fontSize: fontSize,
                         ),
                       ),
                     ],
@@ -151,11 +164,11 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                 onPressed: submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color.fromRGBO(33, 158, 188, 1),
-                  minimumSize: const Size.fromHeight(40),
+                  minimumSize: Size(double.infinity, screenHeight * 0.05),
                 ),
                 child: Text(
                   isLogin ? 'Login' : 'Sign Up',
-                  style: const TextStyle(color: Colors.white),
+                  style: TextStyle(color: Colors.white, fontSize: fontSize),
                 ),
               ),
             ],
