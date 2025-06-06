@@ -50,7 +50,7 @@ class HistoryCardWidget extends StatelessWidget {
                     print('Left button pressed ...');
                   },
                   icon: Icon(leftIcon, size: 20),
-                  color: theme.textTheme.bodyLarge?.color,
+                  color: Colors.black,
                   padding: EdgeInsets.zero,
                 ),
               ),

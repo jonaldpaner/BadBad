@@ -20,7 +20,7 @@ class _HomePageState extends State<HomePage> {
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
-  bool isLoggedIn = false; // Holds whether the user is logged in
+  bool isLoggedIn = false;
 
   @override
   void dispose() {

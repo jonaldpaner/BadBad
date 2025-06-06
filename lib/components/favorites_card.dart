@@ -43,10 +43,13 @@ class FavoritesCardWidget extends StatelessWidget {
                   ),
                   child: IconButton(
                     onPressed: onLeftPressed,
-                    icon: const Icon(Icons.textsms_outlined, size: 20),
-                    color: Colors.black,
+                    icon: const Icon(
+                      Icons.textsms_outlined,
+                      size: 20,
+                      color: Colors.black,
+                    ),
                     padding: EdgeInsets.zero,
-                  ),
+                  )
                 ),
                 const SizedBox(width: 12),
                 // Text message

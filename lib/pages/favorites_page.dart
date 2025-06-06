@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ahhhtest/components/favorites_card.dart';
-import 'package:ahhhtest/pages/translation_page.dart';  // Adjust import as needed
+import 'package:ahhhtest/pages/translation_page.dart';
 
 class FavoritesPageWidget extends StatefulWidget {
   const FavoritesPageWidget({Key? key}) : super(key: key);
@@ -49,7 +49,7 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('All favorites cleared'),
-          duration: Duration(milliseconds: 500), // Show for only 2 seconds
+          duration: Duration(milliseconds: 500),
         ),
       );
     }
@@ -112,7 +112,7 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
               : ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: _favorites.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 16),
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, index) {
               final text = _favorites[index];
               return FavoritesCardWidget(
@@ -126,8 +126,8 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
                     MaterialPageRoute(
                       builder: (context) => TranslationPage(
                         originalText: text,
-                        fromLanguage: "English", // Replace with the actual source language
-                        toLanguage: "Ata Manobo", // Replace with the actual target language
+                        fromLanguage: "English",
+                        toLanguage: "Ata Manobo",
                       ),
 
                     ),

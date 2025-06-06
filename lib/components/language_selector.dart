@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class LanguageSelector extends StatefulWidget {
-  const LanguageSelector({super.key});
+  final void Function(String source, String target)? onLanguageChanged;
+
+  const LanguageSelector({Key? key, this.onLanguageChanged}) : super(key: key);
 
   @override
   State<LanguageSelector> createState() => _LanguageSelectorState();
@@ -20,6 +22,11 @@ class _LanguageSelectorState extends State<LanguageSelector> {
       targetLanguage = temp;
       _rotationTurns += 0.5;
     });
+
+    // Notify parent of change
+    if (widget.onLanguageChanged != null) {
+      widget.onLanguageChanged!(sourceLanguage, targetLanguage);
+    }
   }
 
   Widget _buildLanguageChip(String language, Key key) {

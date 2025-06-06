@@ -7,6 +7,7 @@ import '../components/capture_button.dart';
 import '../components/language_selector.dart';
 import '../components/camera_preview_placeholder.dart';
 import '../components/icon_action_button.dart';
+import 'translation_page.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({super.key});
@@ -27,6 +28,10 @@ class _CameraPageState extends State<CameraPage> {
   bool _isLoading = false;
   String? _errorMessage;
   File? _pickedImageFile;
+
+  // Track selected languages from LanguageSelector
+  String _fromLanguage = 'English';
+  String _toLanguage = 'Ata Manobo';
 
   @override
   void initState() {
@@ -67,16 +72,14 @@ class _CameraPageState extends State<CameraPage> {
         final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
 
         if (mounted) {
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text('Recognized Text'),
-              content: SingleChildScrollView(
-                child: Text(recognizedText.text.isNotEmpty ? recognizedText.text : 'No text found'),
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => TranslationPage(
+                originalText: recognizedText.text.isNotEmpty ? recognizedText.text : 'No text found',
+                fromLanguage: _fromLanguage,
+                toLanguage: _toLanguage,
               ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
-              ],
             ),
           );
         }
@@ -114,7 +117,7 @@ class _CameraPageState extends State<CameraPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(flashMessage),
-          duration: const Duration(milliseconds: 500), // 0.5 seconds
+          duration: const Duration(milliseconds: 500),
         ),
       );
     } catch (e) {
@@ -146,18 +149,18 @@ class _CameraPageState extends State<CameraPage> {
       final inputImage = InputImage.fromFilePath(picture.path);
       final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
 
-      showDialog(
-        context: context,
-        builder: (_) => AlertDialog(
-          title: const Text('Recognized Text'),
-          content: SingleChildScrollView(
-            child: Text(recognizedText.text.isNotEmpty ? recognizedText.text : 'No text found'),
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TranslationPage(
+              originalText: recognizedText.text.isNotEmpty ? recognizedText.text : 'No text found',
+              fromLanguage: _fromLanguage,
+              toLanguage: _toLanguage,
+            ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
-          ],
-        ),
-      );
+        );
+      }
     } catch (e) {
       print('Error capturing photo or recognizing text: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -238,7 +241,14 @@ class _CameraPageState extends State<CameraPage> {
                             ),
                           ],
                         ),
-                        child: const LanguageSelector(),
+                        child: LanguageSelector(
+                          onLanguageChanged: (source, target) {
+                            setState(() {
+                              _fromLanguage = source;
+                              _toLanguage = target;
+                            });
+                          },
+                        ),
                       ),
                     ),
                   ],

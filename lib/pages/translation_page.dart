@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // for clipboard
-import 'package:ahhhtest/components/translation_card.dart'; // your card import
+import 'package:flutter/services.dart';
+import 'package:ahhhtest/components/translation_card.dart';
 
 class TranslationPage extends StatefulWidget {
   final String originalText;
@@ -67,7 +67,7 @@ class _TranslationPageState extends State<TranslationPage> {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Translated text copied to clipboard'),
-                        duration: Duration(milliseconds: 500), // Show for only 2 seconds
+                        duration: Duration(milliseconds: 500),
                       ),
                     );
                   },
