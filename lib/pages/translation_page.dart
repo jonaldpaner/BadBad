@@ -45,7 +45,10 @@ class _TranslationPageState extends State<TranslationPage> {
                   onCopyPressed: () {
                     Clipboard.setData(ClipboardData(text: widget.originalText));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Original text copied to clipboard')),
+                      const SnackBar(
+                        content: Text('Original text copied to clipboard'),
+                        duration: Duration(milliseconds: 500), // Show for only 2 seconds
+                      ),
                     );
                   },
                   onFavoritePressed: () {
@@ -62,7 +65,10 @@ class _TranslationPageState extends State<TranslationPage> {
                   onCopyPressed: () {
                     Clipboard.setData(ClipboardData(text: translatedText));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Translated text copied to clipboard')),
+                      const SnackBar(
+                        content: Text('Translated text copied to clipboard'),
+                        duration: Duration(milliseconds: 500), // Show for only 2 seconds
+                      ),
                     );
                   },
                   onFavoritePressed: () {

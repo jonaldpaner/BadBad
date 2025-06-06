@@ -47,7 +47,10 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
         _favorites.clear();
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All favorites cleared')),
+        const SnackBar(
+          content: Text('All favorites cleared'),
+          duration: Duration(milliseconds: 500), // Show for only 2 seconds
+        ),
       );
     }
   }
@@ -56,9 +59,6 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
     setState(() {
       _favorites.removeAt(index);
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Favorite removed')),
-    );
   }
 
   @override

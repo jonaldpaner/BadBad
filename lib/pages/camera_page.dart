@@ -72,15 +72,22 @@ class _CameraPageState extends State<CameraPage> {
       final flashMessage = _isFlashOn ? 'Flash is turned ON' : 'Flash is turned OFF';
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(flashMessage)),
+        SnackBar(
+          content: Text(flashMessage),
+          duration: Duration(milliseconds: 500),  // 0.5 seconds
+        ),
       );
     } catch (e) {
       print('Flash toggle error: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to toggle flash: $e')),
+        SnackBar(
+          content: Text('Failed to toggle flash: $e'),
+          duration: Duration(milliseconds: 500),  // 0.5 seconds
+        ),
       );
     }
   }
+
 
   Future<void> _captureAndRecognizeText() async {
     if (!_cameraController.value.isInitialized || _cameraController.value.isTakingPicture) {
