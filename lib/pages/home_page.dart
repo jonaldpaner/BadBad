@@ -186,12 +186,16 @@ class _HomePageState extends State<HomePage> {
                   textController: textController,
                   focusNode: textFieldFocusNode,
                   onCameraPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) => const CameraPage()),
-                    );
+                    FocusScope.of(context).unfocus();
+
+                    Future.delayed(const Duration(milliseconds: 300), () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const CameraPage()),
+                      );
+                    });
                   },
+
                   onTranslatePressed: () {
                     final inputText = textController.text.trim();
                     if (inputText.isEmpty) {

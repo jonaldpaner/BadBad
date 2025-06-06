@@ -53,6 +53,8 @@ class FavoritesCardWidget extends StatelessWidget {
                 Expanded(
                   child: Text(
                     text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyLarge?.copyWith(
                       color: const Color(0xFF14181B),
                       fontSize: 16,

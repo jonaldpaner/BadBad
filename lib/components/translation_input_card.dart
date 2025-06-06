@@ -58,33 +58,38 @@ class TranslationInputCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                TextFormField(
-                  controller: textController,
-                  focusNode: focusNode,
-                  maxLines: null,
-                  maxLength: 300,
-                  decoration: InputDecoration(
-                    counterText: '',
-                    hintText: 'Type or paste text here',
-                    filled: true,
-                    fillColor: const Color.fromRGBO(230, 234, 237, 1),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: 150, // max height you want, adjust as needed
                   ),
-                  buildCounter: (context,
-                      {required currentLength, maxLength, required isFocused}) {
-                    return Text(
-                      '$currentLength / $maxLength',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: currentLength > maxLength!
-                            ? Colors.red
-                            : Colors.grey[600],
+                  child: TextFormField(
+                    controller: textController,
+                    focusNode: focusNode,
+                    maxLines: null, // allow multiline
+                    maxLength: 300,
+                    keyboardType: TextInputType.multiline,
+                    scrollPhysics: const BouncingScrollPhysics(), // enable scrolling inside field
+                    decoration: InputDecoration(
+                      counterText: '',
+                      hintText: 'Type or paste text here',
+                      filled: true,
+                      fillColor: const Color.fromRGBO(230, 234, 237, 1),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
                       ),
-                    );
-                  },
+                    ),
+                    buildCounter: (context,
+                        {required currentLength, maxLength, required isFocused}) {
+                      return Text(
+                        '$currentLength / $maxLength',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: currentLength > maxLength! ? Colors.red : Colors.grey[600],
+                        ),
+                      );
+                    },
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(
