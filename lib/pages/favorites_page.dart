@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-// import 'package:google_fonts/google_fonts.dart';
-
 import 'package:ahhhtest/components/favorites_card.dart';
+import 'package:ahhhtest/pages/translation_page.dart';  // Adjust import as needed
 
 class FavoritesPageWidget extends StatefulWidget {
   const FavoritesPageWidget({Key? key}) : super(key: key);
@@ -15,6 +14,12 @@ class FavoritesPageWidget extends StatefulWidget {
 
 class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+
+  // Example favorites data: list of favorite text messages
+  List<String> _favorites = [
+    'Hello, how are you today?',
+    'This is another favorite message',
+  ];
 
   void _clearAllFavorites() async {
     final bool? confirm = await showDialog<bool>(
@@ -38,15 +43,27 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
     );
 
     if (confirm == true) {
-      // TODO: implement your clear favorites logic here
-      print('All favorites cleared');
+      setState(() {
+        _favorites.clear();
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('All favorites cleared')),
+      );
     }
+  }
+
+  void _removeFavorite(int index) {
+    setState(() {
+      _favorites.removeAt(index);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Favorite removed')),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLargeScreen = MediaQuery.of(context).size.width > 600; // simple responsive check
 
     return GestureDetector(
       onTap: () {
@@ -56,10 +73,10 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
         key: scaffoldKey,
         backgroundColor: Colors.white,
         appBar: AppBar(
-          backgroundColor: Colors.white, // example info color replacement
+          backgroundColor: Colors.white,
           automaticallyImplyLeading: false,
           leading: IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.arrow_back_ios_new_rounded,
               color: Colors.black,
               size: 30,
@@ -71,11 +88,7 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
           ),
           title: Text(
             'Favorites',
-            // style: GoogleFonts.inter(
-            //   fontWeight: FontWeight.w600,
-            //   fontSize: 18,
-            //   color: theme.colorScheme.onSecondary,
-            // ),
+            style: theme.textTheme.titleLarge?.copyWith(color: Colors.black),
           ),
           centerTitle: true,
           elevation: 0,
@@ -84,36 +97,44 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
               icon: const Icon(Icons.more_vert, size: 30),
               color: Colors.black,
               onPressed: _clearAllFavorites,
-              tooltip: 'More options',
+              tooltip: 'Clear all favorites',
             ),
           ],
         ),
         body: SafeArea(
-          child: Row(
-            children: [
-              Expanded(
-                flex: 8,
-                child: Container(
-                  width: 100,
-                  height: double.infinity,
-                  color: Colors.white,
-                  alignment: Alignment.topLeft,
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          FavoritesCardWidget(),
-                          SizedBox(height: 16),
-                          FavoritesCardWidget(),
-                        ],
+          child: _favorites.isEmpty
+              ? Center(
+            child: Text(
+              'No favorites yet',
+              style: theme.textTheme.titleMedium,
+            ),
+          )
+              : ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: _favorites.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 16),
+            itemBuilder: (context, index) {
+              final text = _favorites[index];
+              return FavoritesCardWidget(
+                text: text,
+                onFavoritePressed: () {
+                  _removeFavorite(index);
+                },
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TranslationPage(
+                        originalText: text,
+                        fromLanguage: "English", // Replace with the actual source language
+                        toLanguage: "Ata Manobo", // Replace with the actual target language
                       ),
+
                     ),
-                  ),
-                ),
-              ),
-            ],
+                  );
+                },
+              );
+            },
           ),
         ),
       ),

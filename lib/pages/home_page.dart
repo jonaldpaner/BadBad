@@ -193,12 +193,28 @@ class _HomePageState extends State<HomePage> {
                     );
                   },
                   onTranslatePressed: () {
+                    final inputText = textController.text.trim();
+                    if (inputText.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please enter text to translate')),
+                      );
+                      return;
+                    }
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const TranslationPage()),
+                        builder: (context) => TranslationPage(
+                          originalText: inputText,
+                          fromLanguage: fromLanguage,
+                          toLanguage: toLanguage,
+                        ),
+
+
+                      ),
                     );
                   },
+
                 ),
               ),
             ),
