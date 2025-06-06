@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../components/capture_button.dart';
 import '../components/language_selector.dart';
 import '../components/camera_preview_placeholder.dart';
+import '../components/icon_action_button.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({super.key});
@@ -19,8 +20,13 @@ class _CameraPageState extends State<CameraPage> {
   late List<CameraDescription> _cameras;
   bool _isCameraInitialized = false;
   bool _isFlashOn = false;
+
   final ImagePicker _picker = ImagePicker();
   final TextRecognizer _textRecognizer = TextRecognizer();
+
+  bool _isLoading = false;
+  String? _errorMessage;
+  File? _pickedImageFile;
 
   @override
   void initState() {
@@ -45,15 +51,49 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Future<void> _pickImageFromGallery() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+
       if (image != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Picked image: ${image.name}')),
-        );
+        _pickedImageFile = File(image.path);
+
+        // Run OCR on picked image
+        final inputImage = InputImage.fromFile(_pickedImageFile!);
+        final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (_) => AlertDialog(
+              title: const Text('Recognized Text'),
+              content: SingleChildScrollView(
+                child: Text(recognizedText.text.isNotEmpty ? recognizedText.text : 'No text found'),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK')),
+              ],
+            ),
+          );
+        }
       }
     } catch (e) {
-      print('Error picking image: $e');
+      _errorMessage = 'Failed to pick image: $e';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_errorMessage!)),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -74,7 +114,7 @@ class _CameraPageState extends State<CameraPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(flashMessage),
-          duration: Duration(milliseconds: 500),  // 0.5 seconds
+          duration: const Duration(milliseconds: 500), // 0.5 seconds
         ),
       );
     } catch (e) {
@@ -82,12 +122,11 @@ class _CameraPageState extends State<CameraPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to toggle flash: $e'),
-          duration: Duration(milliseconds: 500),  // 0.5 seconds
+          duration: const Duration(milliseconds: 500),
         ),
       );
     }
   }
-
 
   Future<void> _captureAndRecognizeText() async {
     if (!_cameraController.value.isInitialized || _cameraController.value.isTakingPicture) {
@@ -145,7 +184,7 @@ class _CameraPageState extends State<CameraPage> {
                   bottomRight: Radius.circular(30),
                 ),
                 child: SizedBox(
-                  height: screenHeight * 0.70,  // <-- changed here
+                  height: screenHeight * 0.70,
                   width: double.infinity,
                   child: _isCameraInitialized
                       ? CameraPreview(_cameraController)
@@ -161,16 +200,18 @@ class _CameraPageState extends State<CameraPage> {
                         vertical: screenHeight * 0.02,
                         horizontal: screenWidth * 0.08,
                       ),
-                      child: Row(
+                      child: _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          _buildIconButton(
+                          IconActionButton(
                             icon: Icons.photo_library_outlined,
                             size: screenWidth * 0.07,
                             onTap: _pickImageFromGallery,
                           ),
                           CaptureButton(onTap: _captureAndRecognizeText),
-                          _buildIconButton(
+                          IconActionButton(
                             icon: _isFlashOn ? Icons.flash_on : Icons.flash_off,
                             size: screenWidth * 0.07,
                             onTap: _toggleFlash,
@@ -226,28 +267,6 @@ class _CameraPageState extends State<CameraPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildIconButton({required IconData icon, required double size, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(50),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white,
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 6,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Icon(icon, size: size),
       ),
     );
   }

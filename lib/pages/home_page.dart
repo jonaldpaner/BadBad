@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:ahhhtest/components/home_drawer.dart';
 import 'package:ahhhtest/components/login_signup_dialog.dart';
+import 'package:ahhhtest/components/translation_input_card.dart';
 import 'package:ahhhtest/pages/camera_page.dart';
 import 'package:ahhhtest/pages/translation_page.dart';
-import 'favorites_page.dart';
-import 'history_page.dart';
-import 'package:ahhhtest/components/translation_input_card.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -21,7 +20,7 @@ class _HomePageState extends State<HomePage> {
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
-  bool isLoggedIn = false; // <-- Holds whether the user is logged in
+  bool isLoggedIn = false; // Holds whether the user is logged in
 
   @override
   void dispose() {
@@ -55,83 +54,14 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       key: scaffoldKey,
-      drawer: Drawer(
-        elevation: 16,
-        child: Container(
-          color: Colors.white,
-          child: Column(
-            children: [
-              const SizedBox(height: 48),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Menu',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_ios_rounded),
-                      onPressed: () => Navigator.pop(context),
-                      tooltip: 'Close Menu',
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Divider(
-                color: Color.fromRGBO(204, 214, 218, 1),
-                thickness: 1.5,
-              ),
-
-              // Favorites
-              ListTile(
-                leading: const Icon(Icons.favorite_border_rounded),
-                title: const Text('Favorites'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const FavoritesPageWidget(),
-                    ),
-                  );
-                },
-              ),
-
-              // Recent History
-              ListTile(
-                leading: const Icon(Icons.history_rounded),
-                title: const Text('Recent History'),
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const HistoryPageWidget(),
-                    ),
-                  );
-                },
-              ),
-
-              // Only show “Logout” if isLoggedIn == true
-              if (isLoggedIn)
-                ListTile(
-                  leading: const Icon(Icons.logout),
-                  title: const Text('Logout'),
-                  onTap: () {
-                    setState(() {
-                      isLoggedIn = false;
-                    });
-                    Navigator.pop(context);
-                  },
-                ),
-            ],
-          ),
-        ),
+      drawer: HomeDrawer(
+        isLoggedIn: isLoggedIn,
+        onLogout: () {
+          setState(() {
+            isLoggedIn = false;
+          });
+        },
       ),
-
       body: SafeArea(
         child: Stack(
           children: [
@@ -187,24 +117,26 @@ class _HomePageState extends State<HomePage> {
                   focusNode: textFieldFocusNode,
                   onCameraPressed: () {
                     FocusScope.of(context).unfocus();
-
                     Future.delayed(const Duration(milliseconds: 300), () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const CameraPage()),
+                        MaterialPageRoute(
+                          builder: (context) => const CameraPage(),
+                        ),
                       );
                     });
                   },
-
                   onTranslatePressed: () {
                     final inputText = textController.text.trim();
                     if (inputText.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please enter text to translate')),
+                        const SnackBar(
+                          content: Text('Please enter text to translate'),
+                          duration: Duration(seconds: 1),
+                        ),
                       );
                       return;
                     }
-
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -213,12 +145,9 @@ class _HomePageState extends State<HomePage> {
                           fromLanguage: fromLanguage,
                           toLanguage: toLanguage,
                         ),
-
-
                       ),
                     );
                   },
-
                 ),
               ),
             ),
