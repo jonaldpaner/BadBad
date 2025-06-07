@@ -6,17 +6,13 @@ class CameraPreviewPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
+      color: Colors.grey[300],
+      child: const Center(
+        child: Icon(
+          Icons.camera_alt_outlined,
+          size: 100,
+          color: Colors.white70,
         ),
-      ),
-      alignment: Alignment.center,
-      child: const Text(
-        'Camera Preview Area',
-        style: TextStyle(fontSize: 20, color: Colors.grey),
       ),
     );
   }

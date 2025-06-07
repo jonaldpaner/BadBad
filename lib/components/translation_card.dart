@@ -5,6 +5,7 @@ class TranslationCard extends StatelessWidget {
   final String text;
   final VoidCallback? onCopyPressed;
   final VoidCallback? onFavoritePressed;
+  final bool isFavorited;  // new param
 
   const TranslationCard({
     super.key,
@@ -12,6 +13,7 @@ class TranslationCard extends StatelessWidget {
     required this.text,
     this.onCopyPressed,
     this.onFavoritePressed,
+    this.isFavorited = false, // default false
   });
 
   @override
@@ -20,7 +22,7 @@ class TranslationCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
+        color: const Color.fromRGBO(230, 234, 237, 1),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
@@ -67,7 +69,11 @@ class TranslationCard extends StatelessWidget {
               children: [
                 _iconButton(Icons.content_copy_rounded, onCopyPressed ?? () {}),
                 const SizedBox(width: 10),
-                _iconButton(Icons.favorite_border_rounded, onFavoritePressed ?? () {}),
+                _iconButton(
+                  isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                  onFavoritePressed ?? () {},
+                  color: isFavorited ? Colors.black : Colors.black54,
+                ),
               ],
             ),
           ),
@@ -76,7 +82,7 @@ class TranslationCard extends StatelessWidget {
     );
   }
 
-  Widget _iconButton(IconData icon, VoidCallback onPressed) {
+  Widget _iconButton(IconData icon, VoidCallback onPressed, {Color color = Colors.black54}) {
     return Material(
       color: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -85,7 +91,7 @@ class TranslationCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Icon(icon, color: Colors.black54, size: 22),
+          child: Icon(icon, color: color, size: 22),
         ),
       ),
     );

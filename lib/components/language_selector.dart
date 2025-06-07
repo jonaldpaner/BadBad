@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 class LanguageSelector extends StatefulWidget {
-  const LanguageSelector({super.key});
+  final void Function(String source, String target)? onLanguageChanged;
+
+  const LanguageSelector({Key? key, this.onLanguageChanged}) : super(key: key);
 
   @override
   State<LanguageSelector> createState() => _LanguageSelectorState();
@@ -11,41 +13,35 @@ class _LanguageSelectorState extends State<LanguageSelector> {
   String sourceLanguage = 'English';
   String targetLanguage = 'Ata Manobo';
 
+  double _rotationTurns = 0.0;
+
   void _swapLanguages() {
     setState(() {
       final temp = sourceLanguage;
       sourceLanguage = targetLanguage;
       targetLanguage = temp;
+      _rotationTurns += 0.5;
     });
+
+    // Notify parent of change
+    if (widget.onLanguageChanged != null) {
+      widget.onLanguageChanged!(sourceLanguage, targetLanguage);
+    }
   }
 
   Widget _buildLanguageChip(String language, Key key) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
-      transitionBuilder: (child, animation) {
-        return ScaleTransition(scale: animation, child: child);
-      },
-      child: Container(
-        key: key,
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(25),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 6,
-              offset: Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Text(
-          language,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+    // Removed Container, just use Text directly with Center
+    return Center(
+      key: key,
+      child: Text(
+        language,
+        textAlign: TextAlign.center,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+          color: Colors.black87,
         ),
       ),
     );
@@ -55,76 +51,47 @@ class _LanguageSelectorState extends State<LanguageSelector> {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 50,
-      child: Stack(
-        alignment: Alignment.center,
+      width: double.infinity,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Left-aligned source language
-          Align(
-            alignment: Alignment.centerLeft,
-            child: Padding(
-              padding: const EdgeInsets.only(left: 24),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                transitionBuilder: (child, animation) =>
-                    ScaleTransition(scale: animation, child: child),
-                child: Text(
-                  sourceLanguage,
-                  key: ValueKey(sourceLanguage),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
+          Flexible(
+            flex: 3,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
+              child: _buildLanguageChip(
+                sourceLanguage,
+                ValueKey(sourceLanguage),
               ),
             ),
           ),
 
-          // Center swap button
-          Positioned(
+          const SizedBox(width: 12),
+
+          AnimatedRotation(
+            turns: _rotationTurns,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
             child: GestureDetector(
               onTap: _swapLanguages,
-              child: AnimatedRotation(
-                turns: 0.5,
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 4,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.swap_horiz, size: 22),
-                ),
-              ),
+              // Removed Container here, just show the Icon directly
+              child: const Icon(Icons.swap_horiz, size: 22, color: Colors.black),
             ),
           ),
 
-          // Right-aligned target language
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 24),
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                transitionBuilder: (child, animation) =>
-                    ScaleTransition(scale: animation, child: child),
-                child: Text(
-                  targetLanguage,
-                  key: ValueKey(targetLanguage),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
+          const SizedBox(width: 12),
+
+          Flexible(
+            flex: 3,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              transitionBuilder: (child, animation) =>
+                  ScaleTransition(scale: animation, child: child),
+              child: _buildLanguageChip(
+                targetLanguage,
+                ValueKey(targetLanguage),
               ),
             ),
           ),
@@ -132,5 +99,4 @@ class _LanguageSelectorState extends State<LanguageSelector> {
       ),
     );
   }
-
 }

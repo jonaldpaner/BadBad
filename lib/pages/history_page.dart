@@ -46,7 +46,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
     return [
       for (int i = 0; i < cards.length; i++) ...[
         cards[i],
-        if (i != cards.length - 1) const SizedBox(height: 8), // space between cards
+        if (i != cards.length - 1) const SizedBox(height: 8),
       ],
     ];
   }
@@ -55,7 +55,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Simulated dynamic data (replace with real filtered lists)
+
     final List<Widget> todayHistory = [
       const HistoryCardWidget(
         contentType: 'type',

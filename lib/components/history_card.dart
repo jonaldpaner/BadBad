@@ -50,7 +50,7 @@ class HistoryCardWidget extends StatelessWidget {
                     print('Left button pressed ...');
                   },
                   icon: Icon(leftIcon, size: 20),
-                  color: theme.textTheme.bodyLarge?.color,
+                  color: Colors.black,
                   padding: EdgeInsets.zero,
                 ),
               ),
@@ -59,6 +59,8 @@ class HistoryCardWidget extends StatelessWidget {
               Expanded(
                 child: Text(
                   message,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyLarge?.copyWith(
                     color: const Color(0xFF14181B),
                     fontSize: 16,
@@ -67,6 +69,7 @@ class HistoryCardWidget extends StatelessWidget {
                   ),
                 ),
               ),
+
               const SizedBox(width: 8),
               // Right Icon Button Container (like favorite button style)
               Container(
