@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // ADDED: Import Firebase Auth
+import 'dart:async'; // ADDED: Import for StreamSubscription
+
 import 'package:ahhhtest/components/home_drawer.dart';
 import 'package:ahhhtest/components/login_signup_dialog.dart';
 import 'package:ahhhtest/components/translation_input_card.dart';
@@ -20,12 +23,27 @@ class _HomePageState extends State<HomePage> {
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
-  bool isLoggedIn = false;
+  bool isLoggedIn = false; // Initial state can be false
+
+  // ADDED: StreamSubscription to listen for auth state changes
+  late StreamSubscription<User?> _authStateChangesSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // ADDED: Listen to Firebase Auth state changes
+    _authStateChangesSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
+      setState(() {
+        isLoggedIn = user != null; // If user is not null, they are logged in
+      });
+    });
+  }
 
   @override
   void dispose() {
     textController.dispose();
     textFieldFocusNode.dispose();
+    _authStateChangesSubscription.cancel(); // ADDED: Cancel the subscription to prevent memory leaks
     super.dispose();
   }
 
@@ -42,9 +60,11 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (context) => LoginSignUpDialog(
         onLogin: () {
-          setState(() {
-            isLoggedIn = true;
-          });
+          // REMOVED/MODIFIED: No longer need to manually set isLoggedIn = true here
+          // The FirebaseAuth.instance.authStateChanges() listener will handle this
+          // after a successful login.
+          // You still pop the dialog here if login is successful.
+          // Navigator.of(context).pop(); // This was handled in LoginSignUpDialog already.
         },
       ),
     );
@@ -56,10 +76,12 @@ class _HomePageState extends State<HomePage> {
       key: scaffoldKey,
       drawer: HomeDrawer(
         isLoggedIn: isLoggedIn,
-        onLogout: () {
-          setState(() {
-            isLoggedIn = false;
-          });
+        onLogout: () async { // MODIFIED: onLogout now handles Firebase signOut
+          await FirebaseAuth.instance.signOut(); // ADDED: Firebase signOut call
+          // REMOVED/MODIFIED: No longer need to manually set isLoggedIn = false here.
+          // The FirebaseAuth.instance.authStateChanges() listener will handle this
+          // automatically when the signOut() completes.
+          Navigator.of(context).pop(); // Close the drawer after logout
         },
       ),
       body: SafeArea(

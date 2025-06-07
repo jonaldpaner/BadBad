@@ -4,7 +4,7 @@ import 'package:ahhhtest/pages/history_page.dart';
 
 class HomeDrawer extends StatelessWidget {
   final bool isLoggedIn;
-  final VoidCallback onLogout;
+  final Future<void> Function() onLogout;
 
   const HomeDrawer({
     Key? key,
@@ -79,9 +79,9 @@ class HomeDrawer extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.logout),
                 title: const Text('Logout'),
-                onTap: () {
-                  onLogout();
-                  Navigator.pop(context);
+                onTap: () async { // ADDED: made onTap callback async
+                  await onLogout(); // MODIFIED: Await the onLogout function
+                  Navigator.pop(context); // Close the drawer AFTER logout is initiated
                 },
               ),
           ],

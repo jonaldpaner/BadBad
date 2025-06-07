@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // ADDED: Firebase Auth import
 
 class LoginSignUpDialog extends StatefulWidget {
   final VoidCallback onLogin;
@@ -23,6 +24,9 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
   final TextEditingController confirmPasswordController =
   TextEditingController();
 
+  // ADDED: Firebase Auth instance
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   @override
   void dispose() {
     emailController.dispose();
@@ -41,15 +45,60 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
     });
   }
 
-  void submit() {
+  // MODIFIED: submit method made async and includes Firebase Auth logic
+  void submit() async {
     if (_formKey.currentState!.validate()) {
-      if (isLogin) {
-        // When logging in, invoke the callback to notify HomePage
-        widget.onLogin();
-        Navigator.of(context).pop();
-      } else {
-        // TODO: Handle sign-up logic here if needed
-        Navigator.of(context).pop();
+      // ADDED: Try-catch block for Firebase operations
+      try {
+        if (isLogin) {
+          // Firebase Login
+          await _auth.signInWithEmailAndPassword(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          );
+          // If successful, notify HomePage and close dialog
+          widget.onLogin();
+          Navigator.of(context).pop();
+          // ADDED: Success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Logged in successfully!')),
+          );
+        } else {
+          // Firebase Sign Up
+          await _auth.createUserWithEmailAndPassword(
+            email: emailController.text.trim(),
+            password: passwordController.text.trim(),
+          );
+          // Close dialog after successful signup
+          Navigator.of(context).pop();
+          // ADDED: Success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Account created successfully! Please log in.')),
+          );
+        }
+      } on FirebaseAuthException catch (e) {
+        // ADDED: Specific Firebase Auth error handling
+        String message = 'An error occurred. Please check your credentials.';
+        if (e.code == 'user-not-found') {
+          message = 'No user found for that email.';
+        } else if (e.code == 'wrong-password') {
+          message = 'Wrong password provided for that user.';
+        } else if (e.code == 'email-already-in-use') {
+          message = 'The email address is already in use by another account.';
+        } else if (e.code == 'weak-password') {
+          message = 'The password provided is too weak.';
+        } else if (e.code == 'invalid-email') {
+          message = 'The email address is not valid.';
+        }
+        // ADDED: Display error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      } catch (e) {
+        // ADDED: General error handling
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An unexpected error occurred: $e')),
+        );
       }
     }
   }
