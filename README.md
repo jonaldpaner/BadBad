@@ -1,16 +1,33 @@
-# ahhhtest
+# BadBad: Ata Manobo to English Translator
 
-A new Flutter project.
+[![Flutter](https://img.shields.io/badge/Flutter-%2302569B.svg?logo=Flutter&logoColor=white)](https://flutter.dev)
+[![Firebase](https://img.shields.io/badge/Firebase-FFCA28?logo=firebase&logoColor=black)](https://firebase.google.com)
 
-## Getting Started
+A Flutter-Firebase mobile application developed as part of our thesis:  
+**"Badbad: Ata Manobo to English Neural Machine Translation-based Mobile Application Using Transformer Model"**.
 
-This project is a starting point for a Flutter application.
+## 📱 Screenshots
+### Home Page
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 🛠️ Setup Instructions
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### Prerequisites
+- Flutter SDK (version 3.0.0 or later)
+- Firebase account (for backend services)
+- Android Studio/Xcode (for emulator/device testing)
+
+### Installation
+1. **Clone the repository**
+   git clone https://github.com/your-username/BadBad.git
+   cd BadBad
+2. **Install dependencies**
+   flutter pub get
+2. **Run the app**
+   flutter run
+
+### Thesis abstract
+
+/To be edited/
+
+
