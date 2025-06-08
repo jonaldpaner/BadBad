@@ -53,7 +53,7 @@ class TranslationInputCard extends StatelessWidget {
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
-                        color: isDark ? Colors.white70 : Colors.black87,
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
                     const SizedBox(width: 8),

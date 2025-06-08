@@ -38,7 +38,6 @@ class TranslationCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Language label
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
@@ -49,22 +48,33 @@ class TranslationCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          // Text content
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              text,
-              textAlign: TextAlign.justify,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                height: 1.5,
-                letterSpacing: 0.3,
-              ),
-            ),
+
+          // Wrap the text inside a LayoutBuilder to get height constraints
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: 200, // minimum height to push text down a bit
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Text(
+                    text,
+                    textAlign: TextAlign.justify,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      height: 1.5,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
+
+          // Spacer pushes buttons down to bottom only if there's extra space
           const SizedBox(height: 20),
-          // Action buttons
           Padding(
-            padding: const EdgeInsets.only(right: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 20), // Adjust as needed
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
