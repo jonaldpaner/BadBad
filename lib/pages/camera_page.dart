@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
@@ -8,6 +9,7 @@ import '../components/language_selector.dart';
 import '../components/camera_preview_placeholder.dart';
 import '../components/icon_action_button.dart';
 import 'translation_page.dart';
+import '../services/camera_service.dart';
 
 class CameraPage extends StatefulWidget {
   const CameraPage({super.key});
@@ -17,21 +19,21 @@ class CameraPage extends StatefulWidget {
 }
 
 class _CameraPageState extends State<CameraPage> {
-  late CameraController _cameraController;
-  late List<CameraDescription> _cameras;
-  bool _isCameraInitialized = false;
-  bool _isFlashOn = false;
-
+  final CameraService _cameraService = CameraService();
   final ImagePicker _picker = ImagePicker();
   final TextRecognizer _textRecognizer = TextRecognizer();
 
+  bool _isCameraInitialized = false;
   bool _isLoading = false;
-  String? _errorMessage;
   File? _pickedImageFile;
 
-  // Track selected languages from LanguageSelector
   String _fromLanguage = 'English';
   String _toLanguage = 'Ata Manobo';
+
+  double _currentZoomLevel = 1.0;
+  double _minZoomLevel = 1.0;
+  double _maxZoomLevel = 1.0;
+  double _baseZoomLevel = 1.0;
 
   @override
   void initState() {
@@ -40,9 +42,14 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Future<void> _initCamera() async {
-    _cameras = await availableCameras();
-    _cameraController = CameraController(_cameras[0], ResolutionPreset.high);
-    await _cameraController.initialize();
+    final cameras = await availableCameras();
+    await _cameraService.initializeCamera(cameras);
+
+    _minZoomLevel = await _cameraService.getMinZoomLevel();
+    _maxZoomLevel = await _cameraService.getMaxZoomLevel();
+    _currentZoomLevel = _minZoomLevel;
+    await _cameraService.setZoomLevel(_currentZoomLevel);
+
     setState(() {
       _isCameraInitialized = true;
     });
@@ -50,33 +57,29 @@ class _CameraPageState extends State<CameraPage> {
 
   @override
   void dispose() {
-    _cameraController.dispose();
+    _cameraService.dispose();
     _textRecognizer.close();
     super.dispose();
   }
 
   Future<void> _pickImageFromGallery() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
+    setState(() => _isLoading = true);
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-
       if (image != null) {
         _pickedImageFile = File(image.path);
 
-        // Run OCR on picked image
         final inputImage = InputImage.fromFile(_pickedImageFile!);
-        final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
+        final recognizedText = await _textRecognizer.processImage(inputImage);
 
         if (mounted) {
           Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => TranslationPage(
-                originalText: recognizedText.text.isNotEmpty ? recognizedText.text : 'No text found',
+                originalText: recognizedText.text.isNotEmpty
+                    ? recognizedText.text
+                    : 'No text found',
                 fromLanguage: _fromLanguage,
                 toLanguage: _toLanguage,
               ),
@@ -85,76 +88,34 @@ class _CameraPageState extends State<CameraPage> {
         }
       }
     } catch (e) {
-      _errorMessage = 'Failed to pick image: $e';
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(_errorMessage!)),
-        );
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error picking image: $e')),
+      );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _toggleFlash() async {
-    try {
-      if (_isFlashOn) {
-        await _cameraController.setFlashMode(FlashMode.off);
-      } else {
-        await _cameraController.setFlashMode(FlashMode.torch);
-      }
-
-      setState(() {
-        _isFlashOn = !_isFlashOn;
-      });
-
-      final flashMessage = _isFlashOn ? 'Flash is turned ON' : 'Flash is turned OFF';
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(flashMessage),
-          duration: const Duration(milliseconds: 500),
-        ),
-      );
-    } catch (e) {
-      print('Flash toggle error: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to toggle flash: $e'),
-          duration: const Duration(milliseconds: 500),
-        ),
-      );
-    }
+    await _cameraService.toggleFlash();
+    setState(() {});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_cameraService.isFlashOn ? 'Flash ON' : 'Flash OFF'),
+        duration: const Duration(milliseconds: 500),
+      ),
+    );
   }
 
   Future<void> _captureAndRecognizeText() async {
-    if (!_cameraController.value.isInitialized || _cameraController.value.isTakingPicture) {
-      return;
-    }
-
     try {
-      if (_isFlashOn) {
-        await _cameraController.setFlashMode(FlashMode.torch);
-      } else {
-        await _cameraController.setFlashMode(FlashMode.off);
-      }
-
-      final XFile picture = await _cameraController.takePicture();
-      await _cameraController.setFlashMode(FlashMode.off);
-
-      final inputImage = InputImage.fromFilePath(picture.path);
-      final RecognizedText recognizedText = await _textRecognizer.processImage(inputImage);
-
+      final text = await _cameraService.captureAndRecognizeText();
       if (mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => TranslationPage(
-              originalText: recognizedText.text.isNotEmpty ? recognizedText.text : 'No text found',
+              originalText: text.isNotEmpty ? text : 'No text found',
               fromLanguage: _fromLanguage,
               toLanguage: _toLanguage,
             ),
@@ -162,7 +123,6 @@ class _CameraPageState extends State<CameraPage> {
         );
       }
     } catch (e) {
-      print('Error capturing photo or recognizing text: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
@@ -171,113 +131,150 @@ class _CameraPageState extends State<CameraPage> {
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final theme = Theme.of(context);
+    final size = MediaQuery.of(context).size;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: Stack(
-        children: [
-          Column(
+      backgroundColor: theme.colorScheme.background,
+      body: MediaQuery.removePadding(
+        context: context,
+        removeTop: true, // remove top padding so camera goes full screen to top
+        child: SafeArea(
+          bottom: false, // keep bottom safe area for nav bar / language selector
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
             children: [
-              // Camera preview with rounded bottom
+              // Camera with Rounded Bottom Corners
               ClipRRect(
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
+                  bottomLeft: Radius.circular(22),
+                  bottomRight: Radius.circular(22),
                 ),
                 child: SizedBox(
-                  height: screenHeight * 0.70,
+                  height: size.height * 0.84,
                   width: double.infinity,
-                  child: _isCameraInitialized
-                      ? CameraPreview(_cameraController)
-                      : const CameraPreviewPlaceholder(),
+                  child: Stack(
+                    children: [
+                      // Camera Preview or Placeholder
+                      Positioned.fill(
+                        child: _isCameraInitialized &&
+                            _cameraService.controller != null
+                            ? GestureDetector(
+                          onScaleStart: (_) => _baseZoomLevel = _currentZoomLevel,
+                          onScaleUpdate: (details) async {
+                            double newZoom = _baseZoomLevel * details.scale;
+                            newZoom = newZoom.clamp(_minZoomLevel, _maxZoomLevel);
+                            if (newZoom != _currentZoomLevel) {
+                              _currentZoomLevel = newZoom;
+                              await _cameraService.setZoomLevel(_currentZoomLevel);
+                              setState(() {});
+                            }
+                          },
+                          child: CameraPreview(_cameraService.controller!),
+                        )
+                            : const CameraPreviewPlaceholder(),
+                      ),
+
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            top: MediaQuery.of(context).padding.top,
+                            left: 12,
+                            right: 12,
+                            bottom: 8,
+                          ),
+                          child: Opacity(
+                            opacity: 0.8,  // 70% visibility
+                            child: Row(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.arrow_back_ios_new_rounded,
+                                    color: Colors.white,
+                                  ),
+                                  onPressed: () => Navigator.pop(context),
+                                ),
+                                const Expanded(
+                                  child: Text(
+                                    'Take a Picture',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                                const SizedBox(width: 48),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Bottom Buttons inside camera frame
+                      if (!_isLoading)
+                        Positioned(
+                          bottom: 24,
+                          left: 32,
+                          right: 32,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconActionButton(
+                                icon: Icons.photo_library_outlined,
+                                size: size.width * 0.07,
+                                onTap: _pickImageFromGallery,
+                              ),
+                              CaptureButton(onTap: _captureAndRecognizeText),
+                              IconActionButton(
+                                icon: _cameraService.isFlashOn
+                                    ? Icons.flash_on
+                                    : Icons.flash_off,
+                                size: size.width * 0.07,
+                                onTap: _toggleFlash,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      if (_isLoading)
+                        const Center(child: CircularProgressIndicator()),
+                    ],
+                  ),
                 ),
               ),
-              // Bottom section with buttons and language selector
-              Expanded(
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.symmetric(
-                        vertical: screenHeight * 0.02,
-                        horizontal: screenWidth * 0.08,
-                      ),
-                      child: _isLoading
-                          ? const Center(child: CircularProgressIndicator())
-                          : Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconActionButton(
-                            icon: Icons.photo_library_outlined,
-                            size: screenWidth * 0.07,
-                            onTap: _pickImageFromGallery,
-                          ),
-                          CaptureButton(onTap: _captureAndRecognizeText),
-                          IconActionButton(
-                            icon: _isFlashOn ? Icons.flash_on : Icons.flash_off,
-                            size: screenWidth * 0.07,
-                            onTap: _toggleFlash,
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: EdgeInsets.only(bottom: screenHeight * 0.025),
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.05,
-                          vertical: screenHeight * 0.015,
-                        ),
-                        margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.1),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(30),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black12,
-                              blurRadius: 8,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: LanguageSelector(
-                          onLanguageChanged: (source, target) {
-                            setState(() {
-                              _fromLanguage = source;
-                              _toLanguage = target;
-                            });
-                          },
-                        ),
-                      ),
-                    ),
-                  ],
+
+              // Spacer pushes selector to bottom of screen
+              const Spacer(),
+
+              // Language Selector positioned just above the nav bar
+              Padding(
+                padding: EdgeInsets.fromLTRB(16, 0, 16, bottomPadding + 12),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: theme.cardColor,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: LanguageSelector(
+                    onLanguageChanged: (source, target) {
+                      setState(() {
+                        _fromLanguage = source;
+                        _toLanguage = target;
+                      });
+                    },
+                  ),
                 ),
               ),
             ],
           ),
-
-          // Transparent AppBar overlaid on top
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: AppBar(
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              ),
-              title: const Text(
-                'Take a Picture',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
-              ),
-              centerTitle: true,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
+
 }

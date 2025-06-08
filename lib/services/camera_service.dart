@@ -25,6 +25,22 @@ class CameraService {
     _isFlashOn = !_isFlashOn;
   }
 
+  // Add zoom-related getters and setters
+  Future<double> getMinZoomLevel() async {
+    if (_cameraController == null) return 1.0;
+    return await _cameraController!.getMinZoomLevel();
+  }
+
+  Future<double> getMaxZoomLevel() async {
+    if (_cameraController == null) return 1.0;
+    return await _cameraController!.getMaxZoomLevel();
+  }
+
+  Future<void> setZoomLevel(double zoom) async {
+    if (_cameraController == null) return;
+    await _cameraController!.setZoomLevel(zoom);
+  }
+
   Future<String> captureAndRecognizeText() async {
     if (_cameraController == null || !_cameraController!.value.isInitialized || _cameraController!.value.isTakingPicture) {
       return '';

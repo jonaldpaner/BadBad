@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // ADDED: Firebase Auth import
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginSignUpDialog extends StatefulWidget {
   final VoidCallback onLogin;
@@ -15,16 +15,19 @@ class LoginSignUpDialog extends StatefulWidget {
 
 class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
   bool isLogin = true;
+  bool isLoading = false;
+  bool passwordVisible = false;
+  bool confirmPasswordVisible = false;
 
   final _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
-  // Additional signup field
-  final TextEditingController confirmPasswordController =
-  TextEditingController();
+  final FocusNode emailFocus = FocusNode();
+  final FocusNode passwordFocus = FocusNode();
+  final FocusNode confirmPasswordFocus = FocusNode();
 
-  // ADDED: Firebase Auth instance
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   @override
@@ -32,6 +35,9 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
     emailController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
+    emailFocus.dispose();
+    passwordFocus.dispose();
+    confirmPasswordFocus.dispose();
     super.dispose();
   }
 
@@ -42,80 +48,94 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
       emailController.clear();
       passwordController.clear();
       confirmPasswordController.clear();
+      passwordVisible = false;
+      confirmPasswordVisible = false;
     });
   }
 
-  // MODIFIED: submit method made async and includes Firebase Auth logic
-  void submit() async {
-    if (_formKey.currentState!.validate()) {
-      // ADDED: Try-catch block for Firebase operations
-      try {
-        if (isLogin) {
-          // Firebase Login
-          await _auth.signInWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
-          );
-          // If successful, notify HomePage and close dialog
-          widget.onLogin();
-          Navigator.of(context).pop();
-          // ADDED: Success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Logged in successfully!')),
-          );
-        } else {
-          // Firebase Sign Up
-          await _auth.createUserWithEmailAndPassword(
-            email: emailController.text.trim(),
-            password: passwordController.text.trim(),
-          );
-          // Close dialog after successful signup
-          Navigator.of(context).pop();
-          // ADDED: Success message
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Account created successfully! Please log in.')),
-          );
-        }
-      } on FirebaseAuthException catch (e) {
-        // ADDED: Specific Firebase Auth error handling
-        String message = 'An error occurred. Please check your credentials.';
-        if (e.code == 'user-not-found') {
-          message = 'No user found for that email.';
-        } else if (e.code == 'wrong-password') {
-          message = 'Wrong password provided for that user.';
-        } else if (e.code == 'email-already-in-use') {
-          message = 'The email address is already in use by another account.';
-        } else if (e.code == 'weak-password') {
-          message = 'The password provided is too weak.';
-        } else if (e.code == 'invalid-email') {
-          message = 'The email address is not valid.';
-        }
-        // ADDED: Display error message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
+  Future<void> submit() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => isLoading = true);
+
+    try {
+      if (isLogin) {
+        await _auth.signInWithEmailAndPassword(
+          email: emailController.text.trim(),
+          password: passwordController.text.trim(),
         );
-      } catch (e) {
-        // ADDED: General error handling
+        widget.onLogin();
+        Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An unexpected error occurred: $e')),
+          const SnackBar(content: Text('Logged in successfully!')),
+        );
+      } else {
+        await _auth.createUserWithEmailAndPassword(
+          email: emailController.text.trim(),
+          password: passwordController.text.trim(),
+        );
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Account created successfully! Please log in.')),
         );
       }
+    } on FirebaseAuthException catch (e) {
+      String message = 'An error occurred. Please check your credentials.';
+      if (e.code == 'user-not-found') {
+        message = 'No user found for that email.';
+      } else if (e.code == 'wrong-password') {
+        message = 'Wrong password provided for that user.';
+      } else if (e.code == 'email-already-in-use') {
+        message = 'The email address is already in use by another account.';
+      } else if (e.code == 'weak-password') {
+        message = 'The password provided is too weak.';
+      } else if (e.code == 'invalid-email') {
+        message = 'The email address is not valid.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An unexpected error occurred: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+    final theme = Theme.of(context);
+    final dialogBackground = theme.dialogBackgroundColor;
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
+    final buttonColor = theme.colorScheme.primary;
 
-    double fontSize = screenWidth * 0.04; // scales with screen width
-    double verticalSpacing = screenHeight * 0.015;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final textScaleFactor = MediaQuery.textScaleFactorOf(context);
+    const baseFontSize = 16.0;
+    final scale = screenWidth / 375;
+    final clampedScale = scale.clamp(0.8, 1.2);
+
+    final titleFontSize = (baseFontSize + 6) * clampedScale * textScaleFactor;
+    final bodyFontSize = (baseFontSize - 2) * clampedScale * textScaleFactor;
+    final toggleFontSize = (baseFontSize - 4) * clampedScale * textScaleFactor;
+
+    final screenHeight = MediaQuery.of(context).size.height;
+    final verticalSpacing = screenHeight * 0.015;
 
     return AlertDialog(
+      backgroundColor: dialogBackground,
       title: Center(
-        child: Text(
-          isLogin ? 'Login' : 'Sign Up',
-          style: TextStyle(fontSize: fontSize + 2, fontWeight: FontWeight.bold),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: Text(
+            isLogin ? 'Login' : 'Sign Up',
+            key: ValueKey<bool>(isLogin),
+            style: TextStyle(
+              fontSize: titleFontSize,
+              fontWeight: FontWeight.bold,
+              color: textColor,
+            ),
+          ),
         ),
       ),
       content: Form(
@@ -129,17 +149,29 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                     ? 'Hello, again! Enter your email and password below.'
                     : 'Welcome! Enter an email and password to sign up.',
                 style: TextStyle(
-                  color: Colors.grey[700],
-                  fontSize: fontSize,
+                  color: textColor.withOpacity(0.7),
+                  fontSize: bodyFontSize,
                 ),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: verticalSpacing * 1.5),
               TextFormField(
                 controller: emailController,
-                decoration: const InputDecoration(labelText: 'Email'),
+                focusNode: emailFocus,
                 keyboardType: TextInputType.emailAddress,
-                style: TextStyle(fontSize: fontSize),
+                autofillHints: const [AutofillHints.email],
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                  labelStyle: TextStyle(color: textColor.withOpacity(0.7)),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: textColor.withOpacity(0.4)),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: buttonColor),
+                  ),
+                ),
+                style: TextStyle(fontSize: bodyFontSize, color: textColor),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter email';
@@ -149,13 +181,39 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                   }
                   return null;
                 },
+                onFieldSubmitted: (_) {
+                  FocusScope.of(context).requestFocus(passwordFocus);
+                },
               ),
               SizedBox(height: verticalSpacing),
               TextFormField(
                 controller: passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-                style: TextStyle(fontSize: fontSize),
+                focusNode: passwordFocus,
+                obscureText: !passwordVisible,
+                textInputAction: isLogin ? TextInputAction.done : TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  labelStyle: TextStyle(color: textColor.withOpacity(0.7)),
+                  enabledBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: textColor.withOpacity(0.4)),
+                  ),
+                  focusedBorder: UnderlineInputBorder(
+                    borderSide: BorderSide(color: buttonColor),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      passwordVisible ? Icons.visibility : Icons.visibility_off,
+                      color: textColor.withOpacity(0.6),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        passwordVisible = !passwordVisible;
+                      });
+                    },
+                    tooltip: passwordVisible ? 'Hide password' : 'Show password',
+                  ),
+                ),
+                style: TextStyle(fontSize: bodyFontSize, color: textColor),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter password';
@@ -165,15 +223,44 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                   }
                   return null;
                 },
+                onFieldSubmitted: (_) {
+                  if (isLogin) {
+                    submit();
+                  } else {
+                    FocusScope.of(context).requestFocus(confirmPasswordFocus);
+                  }
+                },
               ),
               if (!isLogin) ...[
                 SizedBox(height: verticalSpacing),
                 TextFormField(
                   controller: confirmPasswordController,
-                  decoration:
-                  const InputDecoration(labelText: 'Confirm Password'),
-                  obscureText: true,
-                  style: TextStyle(fontSize: fontSize),
+                  focusNode: confirmPasswordFocus,
+                  obscureText: !confirmPasswordVisible,
+                  textInputAction: TextInputAction.done,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    labelStyle: TextStyle(color: textColor.withOpacity(0.7)),
+                    enabledBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: textColor.withOpacity(0.4)),
+                    ),
+                    focusedBorder: UnderlineInputBorder(
+                      borderSide: BorderSide(color: buttonColor),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        confirmPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                        color: textColor.withOpacity(0.6),
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          confirmPasswordVisible = !confirmPasswordVisible;
+                        });
+                      },
+                      tooltip: confirmPasswordVisible ? 'Hide password' : 'Show password',
+                    ),
+                  ),
+                  style: TextStyle(fontSize: bodyFontSize, color: textColor),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please confirm password';
@@ -183,11 +270,12 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                     }
                     return null;
                   },
+                  onFieldSubmitted: (_) => submit(),
                 ),
               ],
               SizedBox(height: verticalSpacing * 1.5),
               TextButton(
-                onPressed: toggleForm,
+                onPressed: isLoading ? null : toggleForm,
                 child: RichText(
                   text: TextSpan(
                     children: [
@@ -195,29 +283,39 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                         text: isLogin
                             ? "Don't have an account? "
                             : "Already have an account? ",
-                        style: TextStyle(color: Colors.black, fontSize: fontSize),
+                        style: TextStyle(color: textColor.withOpacity(0.7), fontSize: toggleFontSize),
                       ),
                       TextSpan(
                         text: isLogin ? "Sign Up" : "Login",
                         style: TextStyle(
-                          color: const Color.fromRGBO(33, 158, 188, 1),
+                          color: const Color(0xFF219EBC),
                           fontWeight: FontWeight.bold,
-                          fontSize: fontSize,
+                          fontSize: toggleFontSize,
                         ),
                       ),
                     ],
                   ),
                 ),
               ),
-              ElevatedButton(
-                onPressed: submit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color.fromRGBO(33, 158, 188, 1),
-                  minimumSize: Size(double.infinity, screenHeight * 0.05),
-                ),
-                child: Text(
-                  isLogin ? 'Login' : 'Sign Up',
-                  style: TextStyle(color: Colors.white, fontSize: fontSize),
+              SizedBox(
+                width: double.infinity,
+                height: screenHeight * 0.05,
+                child: ElevatedButton(
+                  onPressed: isLoading ? null : submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF219EBC),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: isLoading
+                      ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                      : Text(
+                    isLogin ? 'Login' : 'Sign Up',
+                    style: TextStyle(color: Colors.white, fontSize: bodyFontSize),
+                  ),
                 ),
               ),
             ],

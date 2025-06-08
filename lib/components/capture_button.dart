@@ -6,6 +6,8 @@ class CaptureButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -13,8 +15,8 @@ class CaptureButton extends StatelessWidget {
         height: 70,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.grey[400],
-          border: Border.all(color: Colors.black, width: 2),
+          color: theme.colorScheme.secondary.withOpacity(0.7),
+          border: Border.all(color: theme.dividerColor, width: 2),
         ),
         child: Center(
           child: Container(
@@ -22,7 +24,7 @@ class CaptureButton extends StatelessWidget {
             height: 60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: Colors.grey[300],
+              color: theme.colorScheme.secondary,
             ),
           ),
         ),
