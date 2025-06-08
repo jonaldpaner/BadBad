@@ -14,6 +14,8 @@ class IconActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(50),
@@ -21,7 +23,7 @@ class IconActionButton extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: Colors.white,
+          color: theme.colorScheme.secondary,
           boxShadow: const [
             BoxShadow(
               color: Colors.black12,
@@ -30,7 +32,7 @@ class IconActionButton extends StatelessWidget {
             ),
           ],
         ),
-        child: Icon(icon, size: size),
+        child: Icon(icon, size: size, color: theme.iconTheme.color),
       ),
     );
   }
