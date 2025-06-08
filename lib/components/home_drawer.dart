@@ -36,7 +36,7 @@ class HomeDrawer extends StatelessWidget {
                   ),
                   IconButton(
                     icon: Icon(Icons.arrow_back_ios_rounded,
-                      color: isDark ? Colors.white : Colors.black,
+                      color: isDark ? Colors.white : Colors.black, size: 25,
                     ),
                     onPressed: () => Navigator.pop(context),
                     tooltip: 'Close Menu',

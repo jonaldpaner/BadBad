@@ -132,28 +132,40 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
     if (user == null) {
       return Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: theme.appBarTheme.backgroundColor,
+          automaticallyImplyLeading: false,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 30),
+            icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.iconTheme.color, size: 25),
             onPressed: () => Navigator.of(context).pop(),
             tooltip: 'Back',
           ),
-          title: const Text(
+          title: Text(
             'Favorites',
-            style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 18),
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: theme.textTheme.bodyLarge?.color,
+              fontWeight: FontWeight.w600,
+            ),
           ),
           centerTitle: true,
           elevation: 0,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.more_vert, size: 25),
+              color: theme.iconTheme.color,
+              onPressed: _clearAllFavorites,
+              tooltip: 'Clear all favorites',
+            ),
+          ],
         ),
-        body: const Center(
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.login, size: 60, color: Colors.grey),
-              SizedBox(height: 16),
+              Icon(Icons.login, size: 60, color: theme.iconTheme.color?.withOpacity(0.6)),
+              const SizedBox(height: 16),
               Text(
                 'Please log in to view your favorites.',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.textTheme.bodyLarge?.color?.withOpacity(0.6)),
               ),
             ],
           ),
@@ -216,11 +228,11 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.favorite_border, size: 60, color: Colors.grey),
-                  SizedBox(height: 16),
+                  Icon(Icons.favorite_border, size: 60, color: theme.iconTheme.color?.withOpacity(0.6)),
+                  const SizedBox(height: 16),
                   Text(
                     'No favorites yet.',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                    style: theme.textTheme.bodyLarge?.copyWith(color: theme.textTheme.bodyLarge?.color?.withOpacity(0.6)),
                   ),
                 ],
               ),

@@ -13,6 +13,7 @@ class HistoryCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     // Choose icon based on contentType
     IconData leftIcon;
@@ -29,9 +30,8 @@ class HistoryCardWidget extends StatelessWidget {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: Color.fromRGBO(230, 234, 237, 1),
+          color: theme.cardColor, // dynamic card background
           borderRadius: BorderRadius.circular(20),
-
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -42,7 +42,7 @@ class HistoryCardWidget extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Color.fromRGBO(204, 214, 218, 0.64),
+                  color: theme.colorScheme.secondary.withOpacity(0.3), // dynamic circle bg
                   borderRadius: BorderRadius.circular(50),
                 ),
                 child: IconButton(
@@ -50,11 +50,12 @@ class HistoryCardWidget extends StatelessWidget {
                     print('Left button pressed ...');
                   },
                   icon: Icon(leftIcon, size: 20),
-                  color: Colors.black,
+                  color: theme.iconTheme.color, // dynamic icon color
                   padding: EdgeInsets.zero,
                 ),
               ),
               const SizedBox(width: 12),
+
               // Message Text
               Expanded(
                 child: Text(
@@ -62,7 +63,6 @@ class HistoryCardWidget extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodyLarge?.copyWith(
-                    color: const Color(0xFF14181B),
                     fontSize: 16,
                     fontWeight: FontWeight.normal,
                     fontStyle: FontStyle.normal,
@@ -71,16 +71,17 @@ class HistoryCardWidget extends StatelessWidget {
               ),
 
               const SizedBox(width: 8),
-              // Right Icon Button Container (like favorite button style)
+
+              // Right Icon Button Container
               Container(
                 height: 40,
                 decoration: BoxDecoration(
-                  color: Color.fromRGBO(230, 234, 237, 1),
+                  color: theme.colorScheme.secondary.withOpacity(0.3), // dynamic bg
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: IconButton(
                   icon: const Icon(Icons.more_vert_rounded, size: 20),
-                  color: theme.textTheme.bodyLarge?.color,
+                  color: theme.iconTheme.color,
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   onPressed: () async {
                     final confirmed = await showDialog<bool>(

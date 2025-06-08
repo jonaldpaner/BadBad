@@ -91,42 +91,42 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final User? user = _auth.currentUser; // Get current user here
 
     // ADDED: Display message if user is not logged in
     if (user == null) {
       return Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: theme.scaffoldBackgroundColor,
           leading: IconButton(
-            icon: const Icon(
+            icon: Icon(
               Icons.arrow_back_ios_new_rounded,
-              color: Colors.black,
-              size: 30,
+              color: theme.iconTheme.color,
+              size: 25,
             ),
             onPressed: () => Navigator.of(context).pop(),
             tooltip: 'Back',
           ),
-          title: const Text(
+          title: Text(
             'Recent History',
-            style: TextStyle(
-              color: Colors.black,
+            style: theme.textTheme.titleLarge?.copyWith(
+              color: theme.textTheme.bodyLarge?.color,
               fontWeight: FontWeight.w600,
-              fontSize: 18,
             ),
           ),
           centerTitle: true,
           elevation: 0,
         ),
-        body: const Center(
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.login, size: 60, color: Colors.grey),
-              SizedBox(height: 16),
+              Icon(Icons.login, size: 60, color: theme.disabledColor),
+              const SizedBox(height: 16),
               Text(
                 'Please log in to view your history.',
-                style: TextStyle(fontSize: 18, color: Colors.grey),
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.disabledColor),
               ),
             ],
           ),
@@ -159,44 +159,43 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Scaffold(
             appBar: AppBar(
-              backgroundColor: Colors.white,
+              backgroundColor: theme.scaffoldBackgroundColor,
               leading: IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.arrow_back_ios_new_rounded,
-                  color: Colors.black,
-                  size: 30,
+                  color: theme.iconTheme.color,
+                  size: 25,
                 ),
                 onPressed: () => Navigator.of(context).pop(),
                 tooltip: 'Back',
               ),
-              title: const Text(
+              title: Text(
                 'Recent History',
-                style: TextStyle(
-                  color: Colors.black,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.textTheme.bodyLarge?.color,
                   fontWeight: FontWeight.w600,
-                  fontSize: 18,
                 ),
               ),
               centerTitle: true,
               elevation: 0,
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.more_vert, size: 30),
-                  color: Colors.black,
+                  icon: const Icon(Icons.more_vert, size: 25),
+                  color: theme.iconTheme.color,
                   onPressed: _clearAllHistory,
                   tooltip: 'Clear all history',
                 ),
               ],
             ),
-            body: const Center(
+            body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.book, size: 60, color: Colors.grey),
-                  SizedBox(height: 16),
+                  Icon(Icons.book, size: 60, color: theme.disabledColor),
+                  const SizedBox(height: 16),
                   Text(
                     'No translation history yet.',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
+                    style: theme.textTheme.bodyLarge?.copyWith(color: theme.disabledColor),
                   ),
                 ],
               ),
@@ -250,33 +249,32 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
 
         return Scaffold(
           key: scaffoldKey,
-          backgroundColor: Colors.white,
+          backgroundColor: theme.scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: theme.scaffoldBackgroundColor,
             automaticallyImplyLeading: false,
             leading: IconButton(
-              icon: const Icon(
+              icon: Icon(
                 Icons.arrow_back_ios_new_rounded,
-                color: Colors.black,
-                size: 30,
+                color: theme.iconTheme.color,
+                size: 25,
               ),
               onPressed: () => Navigator.of(context).pop(),
               tooltip: 'Back',
             ),
-            title: const Text(
+            title: Text(
               'Recent History',
-              style: TextStyle(
-                color: Colors.black,
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: theme.textTheme.bodyLarge?.color,
                 fontWeight: FontWeight.w600,
-                fontSize: 18,
               ),
             ),
             centerTitle: true,
             elevation: 0,
             actions: [
               IconButton(
-                icon: const Icon(Icons.more_vert, size: 30),
-                color: Colors.black,
+                icon: const Icon(Icons.more_vert, size: 25),
+                color: theme.iconTheme.color,
                 onPressed: _clearAllHistory,
                 tooltip: 'Clear all history',
               ),

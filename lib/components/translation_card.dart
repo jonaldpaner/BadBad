@@ -5,7 +5,7 @@ class TranslationCard extends StatelessWidget {
   final String text;
   final VoidCallback? onCopyPressed;
   final VoidCallback? onFavoritePressed;
-  final bool isFavorited;  // new param
+  final bool isFavorited;
 
   const TranslationCard({
     super.key,
@@ -13,20 +13,23 @@ class TranslationCard extends StatelessWidget {
     required this.text,
     this.onCopyPressed,
     this.onFavoritePressed,
-    this.isFavorited = false, // default false
+    this.isFavorited = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 20),
       decoration: BoxDecoration(
-        color: const Color.fromRGBO(230, 234, 237, 1),
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: theme.shadowColor.withOpacity(0.05),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -40,8 +43,7 @@ class TranslationCard extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
               language,
-              style: const TextStyle(
-                fontSize: 20,
+              style: theme.textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -53,8 +55,7 @@ class TranslationCard extends StatelessWidget {
             child: Text(
               text,
               textAlign: TextAlign.justify,
-              style: const TextStyle(
-                fontSize: 16,
+              style: theme.textTheme.bodyMedium?.copyWith(
                 height: 1.5,
                 letterSpacing: 0.3,
               ),
@@ -67,12 +68,18 @@ class TranslationCard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                _iconButton(Icons.content_copy_rounded, onCopyPressed ?? () {}),
+                _iconButton(
+                  Icons.content_copy_rounded,
+                  onCopyPressed ?? () {},
+                  theme.iconTheme.color ?? Colors.black54,
+                ),
                 const SizedBox(width: 10),
                 _iconButton(
                   isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                   onFavoritePressed ?? () {},
-                  color: isFavorited ? Colors.black : Colors.black54,
+                  isFavorited
+                      ? (isDarkMode ? Colors.white : Colors.black)
+                      : (theme.iconTheme.color ?? Colors.black54),
                 ),
               ],
             ),
@@ -82,7 +89,7 @@ class TranslationCard extends StatelessWidget {
     );
   }
 
-  Widget _iconButton(IconData icon, VoidCallback onPressed, {Color color = Colors.black54}) {
+  Widget _iconButton(IconData icon, VoidCallback onPressed, Color color) {
     return Material(
       color: Colors.transparent,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
