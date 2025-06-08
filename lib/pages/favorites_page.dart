@@ -15,7 +15,6 @@ class FavoritesPageWidget extends StatefulWidget {
 class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Example favorites data: list of favorite text messages
   List<String> _favorites = [
     'Hello, how are you today?',
     'This is another favorite message',
@@ -24,17 +23,17 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
   void _clearAllFavorites() async {
     final bool? confirm = await showDialog<bool>(
       context: context,
-      builder: (alertDialogContext) {
+      builder: (context) {
         return AlertDialog(
           title: const Text('CLEAR ALL'),
           content: const Text('Are you sure to clear all favorites?'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(alertDialogContext, false),
+              onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel'),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(alertDialogContext, true),
+              onPressed: () => Navigator.pop(context, true),
               child: const Text('Confirm'),
             ),
           ],
@@ -66,36 +65,25 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
     final theme = Theme.of(context);
 
     return GestureDetector(
-      onTap: () {
-        FocusScope.of(context).unfocus();
-      },
+      onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         key: scaffoldKey,
-        backgroundColor: Colors.white,
+        backgroundColor: theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          backgroundColor: Colors.white,
           automaticallyImplyLeading: false,
           leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: Colors.black,
-              size: 30,
-            ),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 30),
+            onPressed: () => Navigator.of(context).pop(),
             tooltip: 'Back',
           ),
           title: Text(
             'Favorites',
-            style: theme.textTheme.titleLarge?.copyWith(color: Colors.black),
+            style: theme.appBarTheme.titleTextStyle,
           ),
           centerTitle: true,
-          elevation: 0,
           actions: [
             IconButton(
               icon: const Icon(Icons.more_vert, size: 30),
-              color: Colors.black,
               onPressed: _clearAllFavorites,
               tooltip: 'Clear all favorites',
             ),
@@ -117,9 +105,7 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
               final text = _favorites[index];
               return FavoritesCardWidget(
                 text: text,
-                onFavoritePressed: () {
-                  _removeFavorite(index);
-                },
+                onFavoritePressed: () => _removeFavorite(index),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -129,7 +115,6 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
                         fromLanguage: "English",
                         toLanguage: "Ata Manobo",
                       ),
-
                     ),
                   );
                 },

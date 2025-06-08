@@ -1,4 +1,3 @@
-// translation_input_card.dart
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
@@ -22,6 +21,8 @@ class TranslationInputCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 32, left: 50, right: 50),
       child: ClipRRect(
@@ -32,9 +33,15 @@ class TranslationInputCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color.fromRGBO(230, 234, 237, 1),
+              color: isDark
+                  ? Colors.black
+                  : const Color.fromRGBO(230, 234, 237, 1),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.white.withOpacity(0.2)),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.white.withOpacity(0.2),
+              ),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -43,15 +50,16 @@ class TranslationInputCard extends StatelessWidget {
                   children: [
                     Text(
                       fromLanguage,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,
-                        color: Colors.black87,
+                        color: isDark ? Colors.white70 : Colors.black87,
                       ),
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      icon: const Icon(Icons.compare_arrows_outlined),
+                      icon: Icon(Icons.compare_arrows_outlined,
+                          color: isDark ? Colors.white : Colors.black),
                       onPressed: onToggleLanguages,
                       tooltip: 'Switch languages',
                     ),
@@ -59,33 +67,43 @@ class TranslationInputCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 ConstrainedBox(
-                  constraints: BoxConstraints(
-                    maxHeight: 150, // max height you want, adjust as needed
-                  ),
+                  constraints: const BoxConstraints(maxHeight: 150),
                   child: TextFormField(
                     controller: textController,
                     focusNode: focusNode,
-                    maxLines: null, // allow multiline
+                    maxLines: null,
                     maxLength: 300,
                     keyboardType: TextInputType.multiline,
-                    scrollPhysics: const BouncingScrollPhysics(), // enable scrolling inside field
+                    scrollPhysics: const BouncingScrollPhysics(),
                     decoration: InputDecoration(
                       counterText: '',
                       hintText: 'Type or paste text here',
+                      hintStyle: TextStyle(
+                        color: isDark ? Colors.white54 : Colors.black45,
+                      ),
                       filled: true,
-                      fillColor: const Color.fromRGBO(230, 234, 237, 1),
+                      fillColor: isDark
+                          ? Colors.grey[900]
+                          : const Color.fromRGBO(230, 234, 237, 1),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide.none,
                       ),
                     ),
+                    style: TextStyle(color: isDark ? Colors.white : Colors.black),
                     buildCounter: (context,
-                        {required currentLength, maxLength, required isFocused}) {
+                        {required currentLength,
+                          maxLength,
+                          required isFocused}) {
                       return Text(
                         '$currentLength / $maxLength',
                         style: TextStyle(
                           fontSize: 12,
-                          color: currentLength > maxLength! ? Colors.red : Colors.grey[600],
+                          color: currentLength > maxLength!
+                              ? Colors.red
+                              : isDark
+                              ? Colors.white70
+                              : Colors.grey[600],
                         ),
                       );
                     },
@@ -96,9 +114,11 @@ class TranslationInputCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     CircleAvatar(
-                      backgroundColor: const Color.fromRGBO(204, 214, 218, 0.64),
+                      backgroundColor:
+                      isDark ? Colors.grey[850] : const Color(0xA3CCD6DA),
                       child: IconButton(
-                        icon: const Icon(Icons.camera_alt_outlined),
+                        icon: Icon(Icons.camera_alt_outlined,
+                            color: isDark ? Colors.white : Colors.black),
                         onPressed: onCameraPressed,
                       ),
                     ),
@@ -113,7 +133,7 @@ class TranslationInputCard extends StatelessWidget {
                         style: TextStyle(color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color.fromRGBO(33, 158, 188, 1),
+                        backgroundColor: const Color(0xFF219EBC),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(24),
                         ),

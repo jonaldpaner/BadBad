@@ -1,8 +1,10 @@
-import 'package:ahhhtest/pages/translation_page.dart';
 import 'package:flutter/material.dart';
-import 'pages/home_page.dart';
-import 'package:ahhhtest/firebase_options.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'pages/home_page.dart';
+
+import 'Theme/light_mode.dart';
+import 'Theme/dark_mode.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,10 +21,9 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'BadBad',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
+      themeMode: ThemeMode.system,
+      theme: lightModeTheme,
+      darkTheme: darkModeTheme,
       home: const HomePage(),
       debugShowCheckedModeBanner: false,
     );
