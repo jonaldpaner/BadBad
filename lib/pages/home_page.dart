@@ -106,11 +106,11 @@ class _HomePageState extends State<HomePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.menu_rounded, color: theme.iconTheme.color),
+                      icon: Icon(Icons.menu_rounded, color: theme.iconTheme.color,size: 25,),
                       onPressed: () => scaffoldKey.currentState?.openDrawer(),
                     ),
                     IconButton(
-                      icon: Icon(Icons.person_outline, color: theme.iconTheme.color),
+                      icon: Icon(Icons.person_outline, color: theme.iconTheme.color, size: 25,),
                       onPressed: showLoginDialog,
                     ),
                   ],

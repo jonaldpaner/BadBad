@@ -195,6 +195,7 @@ class _CameraPageState extends State<CameraPage> {
                                   icon: const Icon(
                                     Icons.arrow_back_ios_new_rounded,
                                     color: Colors.white,
+                                    size: 25,
                                   ),
                                   onPressed: () => Navigator.pop(context),
                                 ),

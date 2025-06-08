@@ -77,10 +77,11 @@ class _TranslationPageState extends State<TranslationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final translatedText = _mockTranslate(widget.originalText, widget.fromLanguage, widget.toLanguage);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor, // <- dynamic background
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -94,9 +95,11 @@ class _TranslationPageState extends State<TranslationPage> {
                   onCopyPressed: () {
                     Clipboard.setData(ClipboardData(text: widget.originalText));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Original text copied to clipboard'),
-                        duration: Duration(milliseconds: 500), // Show for only 2 seconds
+                      SnackBar(
+                        content: const Text('Original text copied to clipboard'),
+                        duration: const Duration(milliseconds: 500), // Show for only 0.5 seconds
+                        backgroundColor: theme.snackBarTheme.backgroundColor ?? theme.colorScheme.secondary,
+                        behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
@@ -114,9 +117,11 @@ class _TranslationPageState extends State<TranslationPage> {
                   onCopyPressed: () {
                     Clipboard.setData(ClipboardData(text: translatedText));
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Translated text copied to clipboard'),
-                        duration: Duration(milliseconds: 500),
+                      SnackBar(
+                        content: const Text('Translated text copied to clipboard'),
+                        duration: const Duration(milliseconds: 500),
+                        backgroundColor: theme.snackBarTheme.backgroundColor ?? theme.colorScheme.secondary,
+                        behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
@@ -143,12 +148,15 @@ class _TranslateMoreButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return TextButton.icon(
       onPressed: () => Navigator.of(context).pop(),
-      icon: const Icon(Icons.translate, color: Colors.blue),
-      label: const Text(
+      icon: Icon(Icons.translate,color: const Color(0xFF219EBC)
+      ),
+      label: Text(
         'Translate More',
-        style: TextStyle(fontSize: 16, color: Colors.blue),
+        style: TextStyle(fontSize: 16,color: const Color(0xFF219EBC)
+        ),
       ),
     );
   }
