@@ -17,6 +17,9 @@ class FavoritesCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cardColor = theme.cardColor;
+    final iconBgColor = theme.colorScheme.secondary;
+    final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
 
     return Padding(
       padding: const EdgeInsets.all(1),
@@ -26,7 +29,7 @@ class FavoritesCardWidget extends StatelessWidget {
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: const Color.fromRGBO(230, 234, 237, 1),
+            color: cardColor,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Padding(
@@ -38,18 +41,14 @@ class FavoritesCardWidget extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color.fromRGBO(204, 214, 218, 0.64),
+                    color: iconBgColor,
                     borderRadius: BorderRadius.circular(50),
                   ),
                   child: IconButton(
                     onPressed: onLeftPressed,
-                    icon: const Icon(
-                      Icons.textsms_outlined,
-                      size: 20,
-                      color: Colors.black,
-                    ),
+                    icon: Icon(Icons.textsms_outlined, size: 20, color: textColor),
                     padding: EdgeInsets.zero,
-                  )
+                  ),
                 ),
                 const SizedBox(width: 12),
                 // Text message
@@ -59,8 +58,6 @@ class FavoritesCardWidget extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      color: const Color(0xFF14181B),
-                      fontSize: 16,
                       fontWeight: FontWeight.normal,
                       fontStyle: FontStyle.normal,
                     ),
@@ -71,14 +68,14 @@ class FavoritesCardWidget extends StatelessWidget {
                 Container(
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color.fromRGBO(230, 234, 237, 1),
+                    color: cardColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: IconButton(
                     onPressed: onFavoritePressed,
                     icon: const Icon(Icons.favorite_rounded),
                     iconSize: 20,
-                    color: theme.textTheme.bodyLarge?.color,
+                    color: textColor,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                 ),

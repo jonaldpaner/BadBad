@@ -14,10 +14,12 @@ class HomeDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Drawer(
       elevation: 16,
       child: Container(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF121212) : Colors.white,
         child: Column(
           children: [
             const SizedBox(height: 48),
@@ -28,10 +30,14 @@ class HomeDrawer extends StatelessWidget {
                 children: [
                   Text(
                     'Menu',
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_rounded),
+                    icon: Icon(Icons.arrow_back_ios_rounded,
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
                     onPressed: () => Navigator.pop(context),
                     tooltip: 'Close Menu',
                   ),
@@ -39,15 +45,20 @@ class HomeDrawer extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Divider(
-              color: Color.fromRGBO(204, 214, 218, 1),
+            Divider(
+              color: isDark
+                  ? Colors.white.withOpacity(0.1)
+                  : const Color.fromRGBO(204, 214, 218, 1),
               thickness: 1.5,
             ),
 
-            // Favorites navigation item
             ListTile(
-              leading: const Icon(Icons.favorite_border_rounded),
-              title: const Text('Favorites'),
+              leading: Icon(Icons.favorite_border_rounded,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+              title: Text('Favorites',
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -59,10 +70,13 @@ class HomeDrawer extends StatelessWidget {
               },
             ),
 
-            // History navigation item
             ListTile(
-              leading: const Icon(Icons.history_rounded),
-              title: const Text('Recent History'),
+              leading: Icon(Icons.history_rounded,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+              title: Text('Recent History',
+                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+              ),
               onTap: () {
                 Navigator.pop(context);
                 Navigator.push(
@@ -74,14 +88,17 @@ class HomeDrawer extends StatelessWidget {
               },
             ),
 
-            // Only show “Logout” if isLoggedIn == true
             if (isLoggedIn)
               ListTile(
-                leading: const Icon(Icons.logout),
-                title: const Text('Logout'),
-                onTap: () async { // ADDED: made onTap callback async
-                  await onLogout(); // MODIFIED: Await the onLogout function
-                  Navigator.pop(context); // Close the drawer AFTER logout is initiated
+                leading: Icon(Icons.logout,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+                title: Text('Logout',
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                ),
+                onTap: () async {
+                  await onLogout();
+                  Navigator.pop(context);
                 },
               ),
           ],

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // ADDED: Import Firebase Auth
-import 'dart:async'; // ADDED: Import for StreamSubscription
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
 
 import 'package:ahhhtest/components/home_drawer.dart';
 import 'package:ahhhtest/components/login_signup_dialog.dart';
@@ -23,18 +23,16 @@ class _HomePageState extends State<HomePage> {
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
-  bool isLoggedIn = false; // Initial state can be false
+  bool isLoggedIn = false;
 
-  // ADDED: StreamSubscription to listen for auth state changes
   late StreamSubscription<User?> _authStateChangesSubscription;
 
   @override
   void initState() {
     super.initState();
-    // ADDED: Listen to Firebase Auth state changes
     _authStateChangesSubscription = FirebaseAuth.instance.authStateChanges().listen((user) {
       setState(() {
-        isLoggedIn = user != null; // If user is not null, they are logged in
+        isLoggedIn = user != null;
       });
     });
   }
@@ -43,7 +41,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     textController.dispose();
     textFieldFocusNode.dispose();
-    _authStateChangesSubscription.cancel(); // ADDED: Cancel the subscription to prevent memory leaks
+    _authStateChangesSubscription.cancel();
     super.dispose();
   }
 
@@ -59,51 +57,47 @@ class _HomePageState extends State<HomePage> {
     showDialog(
       context: context,
       builder: (context) => LoginSignUpDialog(
-        onLogin: () {
-          // REMOVED/MODIFIED: No longer need to manually set isLoggedIn = true here
-          // The FirebaseAuth.instance.authStateChanges() listener will handle this
-          // after a successful login.
-          // You still pop the dialog here if login is successful.
-          // Navigator.of(context).pop(); // This was handled in LoginSignUpDialog already.
-        },
+        onLogin: () {},
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDarkMode = theme.brightness == Brightness.dark;
+
     return Scaffold(
       key: scaffoldKey,
       drawer: HomeDrawer(
         isLoggedIn: isLoggedIn,
-        onLogout: () async { // MODIFIED: onLogout now handles Firebase signOut
-          await FirebaseAuth.instance.signOut(); // ADDED: Firebase signOut call
-          // REMOVED/MODIFIED: No longer need to manually set isLoggedIn = false here.
-          // The FirebaseAuth.instance.authStateChanges() listener will handle this
-          // automatically when the signOut() completes.
-          Navigator.of(context).pop(); // Close the drawer after logout
+        onLogout: () async {
+          await FirebaseAuth.instance.signOut();
+          Navigator.of(context).pop();
         },
       ),
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Stack(
           children: [
-            // Background gradient
-            Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.bottomLeft,
-                  end: Alignment.topRight,
-                  colors: [
-                    Colors.white,
-                    Color(0xFFe2f3f9),
-                    Color(0xFFb8e1f1),
-                  ],
-                  stops: [0.0, 0.5, 1.0],
+            // Background
+            if (!isDarkMode)
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.bottomLeft,
+                    end: Alignment.topRight,
+                    colors: [
+                      Colors.white,
+                      Color(0xFFe2f3f9),
+                      Color(0xFFb8e1f1),
+                    ],
+                    stops: [0.0, 0.5, 1.0],
+                  ),
                 ),
               ),
-            ),
 
-            // Top bar (menu button + profile button)
+            // Top bar
             Align(
               alignment: Alignment.topCenter,
               child: Padding(
@@ -111,15 +105,12 @@ class _HomePageState extends State<HomePage> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Hamburger menu
                     IconButton(
-                      icon: const Icon(Icons.menu_rounded),
+                      icon: Icon(Icons.menu_rounded, color: theme.iconTheme.color),
                       onPressed: () => scaffoldKey.currentState?.openDrawer(),
                     ),
-
-                    // Profile / Login button
                     IconButton(
-                      icon: const Icon(Icons.person_outline),
+                      icon: Icon(Icons.person_outline, color: theme.iconTheme.color),
                       onPressed: showLoginDialog,
                     ),
                   ],
@@ -127,7 +118,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // Translation input card (at bottom)
+            // Translation input card
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
