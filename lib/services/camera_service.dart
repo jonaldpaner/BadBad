@@ -8,6 +8,24 @@ class CameraService {
 
   CameraController? get controller => _cameraController;
   bool get isFlashOn => _isFlashOn;
+  String? lastCapturedImagePath;
+
+
+  Future<RecognizedText?> captureAndGetRecognizedText() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _cameraController!.value.isTakingPicture) {
+      return null;
+    }
+
+    await _cameraController!.setFlashMode(_isFlashOn ? FlashMode.torch : FlashMode.off);
+    final picture = await _cameraController!.takePicture();
+    lastCapturedImagePath = picture.path; // Save for later access
+    await _cameraController!.setFlashMode(FlashMode.off);
+
+    final inputImage = InputImage.fromFilePath(picture.path);
+    return await _textRecognizer.processImage(inputImage);
+  }
 
   Future<void> initializeCamera(List<CameraDescription> cameras) async {
     _cameraController = CameraController(cameras[0], ResolutionPreset.high);
@@ -16,51 +34,36 @@ class CameraService {
 
   Future<void> toggleFlash() async {
     if (_cameraController == null) return;
-
-    if (_isFlashOn) {
-      await _cameraController!.setFlashMode(FlashMode.off);
-    } else {
-      await _cameraController!.setFlashMode(FlashMode.torch);
-    }
+    await _cameraController!.setFlashMode(_isFlashOn ? FlashMode.off : FlashMode.torch);
     _isFlashOn = !_isFlashOn;
   }
-
-  // Add zoom-related getters and setters
-  Future<double> getMinZoomLevel() async {
-    if (_cameraController == null) return 1.0;
-    return await _cameraController!.getMinZoomLevel();
-  }
-
-  Future<double> getMaxZoomLevel() async {
-    if (_cameraController == null) return 1.0;
-    return await _cameraController!.getMaxZoomLevel();
-  }
-
-  Future<void> setZoomLevel(double zoom) async {
-    if (_cameraController == null) return;
-    await _cameraController!.setZoomLevel(zoom);
-  }
-
-  Future<String> captureAndRecognizeText() async {
-    if (_cameraController == null || !_cameraController!.value.isInitialized || _cameraController!.value.isTakingPicture) {
-      return '';
+  Future<(XFile, RecognizedText)?> takePictureAndRecognize() async {
+    if (_cameraController == null ||
+        !_cameraController!.value.isInitialized ||
+        _cameraController!.value.isTakingPicture) {
+      return null;
     }
 
-    if (_isFlashOn) {
-      await _cameraController!.setFlashMode(FlashMode.torch);
-    } else {
-      await _cameraController!.setFlashMode(FlashMode.off);
-    }
-
-    final XFile picture = await _cameraController!.takePicture();
-
+    // Maintain flash state during capture
+    await _cameraController!.setFlashMode(_isFlashOn ? FlashMode.torch : FlashMode.off);
+    final picture = await _cameraController!.takePicture();
     await _cameraController!.setFlashMode(FlashMode.off);
 
     final inputImage = InputImage.fromFilePath(picture.path);
     final recognizedText = await _textRecognizer.processImage(inputImage);
-
-    return recognizedText.text;
+    return (picture, recognizedText);
   }
+
+  Future<double> getMinZoomLevel() =>
+      _cameraController?.getMinZoomLevel() ?? Future.value(1.0);
+
+  Future<double> getMaxZoomLevel() =>
+      _cameraController?.getMaxZoomLevel() ?? Future.value(1.0);
+
+  Future<void> setZoomLevel(double z) async {
+    if (_cameraController != null) await _cameraController!.setZoomLevel(z);
+  }
+
 
   void dispose() {
     _cameraController?.dispose();
