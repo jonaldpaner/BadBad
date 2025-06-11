@@ -1,0 +1,277 @@
+import 'package:flutter/material.dart';
+import 'dart:ui';
+import 'dart:math';
+import 'dart:io';
+
+import '../models/text_box.dart';
+import '../utils/bounding_box_painter.dart';
+
+// Private CustomPainter class for the drag handle shapes
+class _DragHandleShapePainter extends CustomPainter {
+  static const double _CIRCLE_RADIUS = 20;
+  static const double _HANDLE_HEIGHT = 50; // This is the height of the main tear-drop body
+  static const double _CONTAINER_WIDTH = 40; // The total width of the SizedBox for the painter
+  static const double _CONTAINER_HEIGHT = 140; // The total height of the SizedBox for the painter
+
+  final bool isLeftHandle;
+
+  const _DragHandleShapePainter({required this.isLeftHandle});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.blueAccent
+      ..style = PaintingStyle.fill;
+
+    final Path path = Path();
+
+    // The 'center' here refers to the center of the rounded base of the teardrop
+    final Offset center = Offset(size.width / 2, size.height - _CIRCLE_RADIUS);
+    final double topY = center.dy - _HANDLE_HEIGHT;
+
+    // Apply inward rotation transformations
+    canvas.save();
+
+    // Move pivot to the center of the overall SizedBox for rotation
+    canvas.translate(size.width / 2, size.height / 1.15);
+
+    // Apply slight rotation: inward tilt
+    final double tiltAngle = isLeftHandle ? pi / 5 : -pi / 5; // ~15 degrees
+    canvas.rotate(tiltAngle);
+
+    // Move back after rotating
+    canvas.translate(-size.width / 2, -size.height / 2);
+
+    // Draw the teardrop shape
+    path.moveTo(center.dx, topY); // Start from the pointed top
+
+    // Left curve (from top to bottom-left of rounded part)
+    path.quadraticBezierTo(
+      center.dx - 20, // Control point X
+      topY + 20,      // Control point Y
+      center.dx - 10, // End point X (top-left of rounded part)
+      center.dy - _CIRCLE_RADIUS, // End point Y
+    );
+
+    // Bottom arc (rounded part)
+    path.arcToPoint(
+      Offset(center.dx + 10, center.dy - _CIRCLE_RADIUS), // End point of arc (top-right of rounded part)
+      radius: Radius.circular(_CIRCLE_RADIUS),
+      clockwise: false, // Draw counter-clockwise to form bottom arc
+    );
+
+    // Right curve (from bottom-right of rounded part back to top)
+    path.quadraticBezierTo(
+      center.dx + 20, // Control point X
+      topY + 20,      // Control point Y
+      center.dx,      // End point X (back to pointed top)
+      topY,           // End point Y
+    );
+
+    path.close(); // Close the path to form a solid shape
+
+    // Draw with shadow
+    canvas.drawShadow(path, Colors.black, 2, true); // The `true` makes it a softer, more blurred shadow
+    canvas.drawPath(path, paint);
+    canvas.restore(); // Restore the canvas to its state before transformations
+  }
+
+  @override
+  bool shouldRepaint(_DragHandleShapePainter oldDelegate) =>
+      oldDelegate.isLeftHandle != isLeftHandle; // Repaint only if handle type changes
+}
+
+
+class TextSelectionOverlay extends StatelessWidget {
+  final List<TextBox> selectedWords;
+  final File? capturedImageFile;
+  final Size? previewSize;
+  final Size originalImageSize;
+  final TransformationController transformationController;
+  final TextBox? fixedAnchorWord;
+  final bool isDraggingLeftHandleCurrent;
+  final Rect? transformedFixedAnchorRect;
+  final Offset? currentDraggingHandleScreenPosition;
+  final void Function(DragStartDetails) onHandlePanStartLeft;
+  final void Function(DragStartDetails) onHandlePanStartRight;
+  final void Function(DragUpdateDetails) onHandlePanUpdate;
+  final void Function(DragEndDetails) onHandlePanEnd;
+  final void Function(String) onTranslate;
+
+  const TextSelectionOverlay({
+    super.key,
+    required this.selectedWords,
+    this.capturedImageFile,
+    this.previewSize,
+    required this.originalImageSize,
+    required this.transformationController,
+    this.fixedAnchorWord,
+    required this.isDraggingLeftHandleCurrent,
+    this.transformedFixedAnchorRect,
+    this.currentDraggingHandleScreenPosition,
+    required this.onHandlePanStartLeft,
+    required this.onHandlePanStartRight,
+    required this.onHandlePanUpdate,
+    required this.onHandlePanEnd,
+    required this.onTranslate,
+  });
+
+  // Helper method to get the handle widget using CustomPaint
+  Widget _dragHandle(bool isLeft) => SizedBox(
+    width: _DragHandleShapePainter._CONTAINER_WIDTH,
+    height: _DragHandleShapePainter._CONTAINER_HEIGHT,
+    child: CustomPaint(
+      painter: _DragHandleShapePainter(isLeftHandle: isLeft), // Use const constructor
+    ),
+  );
+
+  /// Calculates the top-left offset for positioning the handle's SizedBox.
+  /// The goal is to align the center of the handle's rounded base with the target point (bounding box corner or drag position).
+  Offset _calculateHandlePosition({
+    required bool isLeftHandle,
+    required Rect transformedRect,
+    required Offset? draggingScreenPosition, // The current position of the finger when dragging
+  }) {
+    // Get the internal coordinates of the handle's visual anchor point
+    // This is the center of the rounded base of the teardrop, relative to the SizedBox's top-left (0,0)
+    final double visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2;
+    final double visualAnchorY = _DragHandleShapePainter._CONTAINER_HEIGHT - _DragHandleShapePainter._CIRCLE_RADIUS;
+
+    // Determine the target screen position for the visual anchor
+    double targetScreenX;
+    double targetScreenY;
+
+    if (draggingScreenPosition != null) {
+      // If actively dragging, the handle's visual anchor point should follow the finger's current position.
+      targetScreenX = draggingScreenPosition.dx;
+      targetScreenY = draggingScreenPosition.dy;
+    } else {
+      // If not dragging, position the handle based on the bounding box corners.
+      if (isLeftHandle) {
+        targetScreenX = transformedRect.bottomLeft.dx;
+        targetScreenY = transformedRect.bottomLeft.dy;
+      } else {
+        targetScreenX = transformedRect.bottomRight.dx;
+        targetScreenY = transformedRect.bottomRight.dy;
+      }
+    }
+
+    // Calculate the top-left position (Offset) of the SizedBox for the Positioned widget.
+    // This shifts the SizedBox so that its internal `visualAnchorX, visualAnchorY` point
+    // is placed at the `targetScreenX, targetScreenY` on the screen.
+    return Offset(
+      targetScreenX - visualAnchorX,
+      targetScreenY - visualAnchorY,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (selectedWords.isEmpty || capturedImageFile == null || previewSize == null) {
+      return const SizedBox.shrink();
+    }
+
+    // Calculate the combined bounding box of selected words
+    // using fold to handle the first element.
+    final combinedRect = selectedWords.fold<Rect?>(
+      null,
+          (rect, word) => rect == null ? word.rect : rect.expandToInclude(word.rect),
+    )!; // The '!' asserts that combinedRect will not be null here.
+
+    // Scale the combined bounding box to fit the preview area.
+    final scaledRect = BoundingBoxPainter.scaleRectForFit(
+      combinedRect,
+      originalImageSize,
+      previewSize!,
+      BoxFit.cover,
+    );
+
+    // Apply the InteractiveViewer's transformations (zoom/pan) to the scaled rectangle.
+    final matrix = transformationController.value;
+    final transformedAndScaledRect = Rect.fromPoints(
+      MatrixUtils.transformPoint(matrix, scaledRect.topLeft),
+      MatrixUtils.transformPoint(matrix, scaledRect.bottomRight),
+    );
+
+    // Determine the effective rectangle for handle positioning (fixed anchor vs. current selection)
+    final effectiveRect = transformedFixedAnchorRect ?? transformedAndScaledRect;
+
+    // Calculate positions for both handles using the helper method.
+    final leftHandlePos = _calculateHandlePosition(
+      isLeftHandle: true,
+      transformedRect: effectiveRect,
+      // Pass currentDraggingHandleScreenPosition only if this is the actively dragged handle
+      draggingScreenPosition: isDraggingLeftHandleCurrent ? currentDraggingHandleScreenPosition : null,
+    );
+    final rightHandlePos = _calculateHandlePosition(
+      isLeftHandle: false,
+      transformedRect: effectiveRect,
+      // Pass currentDraggingHandleScreenPosition only if this is the actively dragged handle
+      draggingScreenPosition: !isDraggingLeftHandleCurrent ? currentDraggingHandleScreenPosition : null,
+    );
+
+    // Calculate the top position for the action bar (Translate button)
+    final double actionBarTop = transformedAndScaledRect.top - 50; // Adjust as needed for padding/margin
+
+    return Stack(
+      children: [
+        // Translate Button (positioned above the selected text)
+        Positioned(
+          left: transformedAndScaledRect.left + transformedAndScaledRect.width / 2 - 60, // Center horizontally
+          top: actionBarTop,
+          child: Material(
+            elevation: 6,
+            borderRadius: BorderRadius.circular(20),
+            color: Colors.transparent, // Ensure transparent background
+            child: GestureDetector(
+              onTap: () {
+                final text = selectedWords.map((e) => e.text).join(' ');
+                onTranslate(text);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor, // Use theme's card color
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  "Translate",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Left Drag Handle
+        Positioned(
+          left: leftHandlePos.dx,
+          top: leftHandlePos.dy,
+          child: GestureDetector(
+            onPanStart: onHandlePanStartLeft,
+            onPanUpdate: onHandlePanUpdate,
+            onPanEnd: onHandlePanEnd,
+            child: _dragHandle(true), // Pass true for left handle
+          ),
+        ),
+
+        // Right Drag Handle
+        Positioned(
+          left: rightHandlePos.dx,
+          top: rightHandlePos.dy,
+          child: GestureDetector(
+            onPanStart: onHandlePanStartRight,
+            onPanUpdate: onHandlePanUpdate,
+            onPanEnd: onHandlePanEnd,
+            child: _dragHandle(false), // Pass false for right handle
+          ),
+        ),
+      ],
+    );
+  }
+}
