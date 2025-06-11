@@ -1,27 +1,24 @@
 import 'package:flutter/material.dart';
-import 'dart:ui'; // Contains Size, Rect, Offset
-
-class TextBox {
-  final Rect rect; // The axis-aligned bounding box from ML Kit
-  final List<Offset> cornerPoints; // The 4 corner points (quadrilateral) from ML Kit
-  final String text; // The recognized text within this bounding box
-  final bool isWord; // True if this TextBox represents a single word, false if it's a line
-
-  TextBox(this.rect, this.text, this.cornerPoints, {this.isWord = true})
-      : assert(cornerPoints.length == 4, 'cornerPoints must have exactly 4 points');
-
-// Removed scaleRectTo and scaleCornerPointsTo as scaling logic is now handled
-// by BoundingBoxPainter's static methods based on the BoxFit.
-}
+import 'dart:ui';
+import 'dart:math';
+import '../models/text_box.dart';
 
 class BoundingBoxPainter extends CustomPainter {
-  final List<TextBox> boxes; // All text boxes (lines and words) to be drawn
-  final Size originalSize; // The original dimensions of the image where text was recognized
-  final Size previewSize; // The current dimensions of the widget displaying the image/camera feed
-  final List<TextBox> selectedWords; // The currently selected words to be highlighted
-  final BoxFit fit; // <--- NEW: Added BoxFit parameter
+  final List<TextBox> boxes;
+  final Size originalSize;
+  final Size previewSize;
+  final List<TextBox> selectedWords;
+  final BoxFit fit;
+  final Rect? selectionRect;
 
-  BoundingBoxPainter(this.boxes, this.originalSize, this.previewSize, {this.selectedWords = const [], this.fit = BoxFit.contain});
+  BoundingBoxPainter(
+      this.boxes,
+      this.originalSize,
+      this.previewSize, {
+        this.selectedWords = const [],
+        this.fit = BoxFit.contain,
+        this.selectionRect,
+      });
 
   // --- Static Helper Methods for Scaling (Re-usable by CameraPage for tap detection) ---
 
@@ -114,6 +111,15 @@ class BoundingBoxPainter extends CustomPainter {
       ..color = Colors.blue.withOpacity(0.4)
       ..style = PaintingStyle.fill;
 
+    // Paint for the drag selection rectangle (if `selectionRect` is provided and not null)
+    final Paint selectionRectPaint = Paint()
+      ..color = Colors.red.withOpacity(0.3)
+      ..style = PaintingStyle.fill;
+    final Paint selectionRectBorderPaint = Paint()
+      ..color = Colors.red
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
     // Draw bounding boxes for full lines of text (where isWord is false)
     for (final b in boxes.where((b) => !b.isWord)) {
       if (b.cornerPoints.length == 4) { // Ensure it's a valid quadrilateral
@@ -151,14 +157,22 @@ class BoundingBoxPainter extends CustomPainter {
         canvas.drawRect(r, selectedPaint);
       }
     }
+
+    // Draw the active drag selection rectangle
+    if (selectionRect != null) {
+      canvas.drawRect(selectionRect!, selectionRectPaint);
+      canvas.drawRect(selectionRect!, selectionRectBorderPaint);
+    }
   }
 
   @override
   bool shouldRepaint(covariant BoundingBoxPainter oldDelegate) {
+    // Only repaint if any relevant property changes
     return oldDelegate.boxes != boxes ||
         oldDelegate.originalSize != originalSize ||
         oldDelegate.previewSize != previewSize ||
         oldDelegate.selectedWords != selectedWords ||
-        oldDelegate.fit != fit; // Include 'fit' in the repaint check
+        oldDelegate.fit != fit ||
+        oldDelegate.selectionRect != selectionRect;
   }
 }
