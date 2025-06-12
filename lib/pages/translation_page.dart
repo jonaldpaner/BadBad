@@ -31,32 +31,39 @@ class _TranslationPageState extends State<TranslationPage> {
   bool _isLoadingTranslation = true; // State to manage loading indicator
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance; // Corrected to use .auth for consistency
+  final FirebaseAuth _auth = FirebaseAuth.instance; // Corrected to use .instance
 
-  // NEW: Asynchronous function to fetch translation from the API
+  // MODIFIED: Asynchronous function to fetch translation from the API
   Future<String> _fetchTranslation(String message) async {
-    // Only proceed if 'fromLanguage' is 'Ata Manobo'
+    // Determine the API endpoint based on the fromLanguage
+    String? apiEndpoint;
     if (widget.fromLanguage == 'Ata Manobo') {
-      try {
-        final encodedMessage = Uri.encodeComponent(message); // Encode the message for the URL
-        final url = Uri.parse('https://badbad-api.onrender.com/translate/ata?message=$encodedMessage');
-        final response = await http.get(url);
-
-        if (response.statusCode == 200) {
-          final Map<String, dynamic> data = json.decode(response.body);
-          // Extract the 'translation' field, handle potential null/missing
-          return data['translation']?.toString() ?? 'Translation not found.';
-        } else {
-          print('Failed to load translation: ${response.statusCode}');
-          return 'Error: Could not translate (Status Code: ${response.statusCode})';
-        }
-      } catch (e) {
-        print('Error fetching translation: $e');
-        return 'Error: Could not translate (Network Error)';
-      }
+      apiEndpoint = 'ata';
+    } else if (widget.fromLanguage == 'English') {
+      apiEndpoint = 'eng';
     } else {
-      // If fromLanguage is not 'Ata Manobo', return an empty string as requested
+      // If fromLanguage is neither 'Ata Manobo' nor 'English', return an empty string
       return '';
+    }
+
+    try {
+      final encodedMessage = Uri.encodeComponent(message); // Encode the message for the URL
+      final url = Uri.parse('https://badbad-api.onrender.com/translate/$apiEndpoint?message=$encodedMessage');
+      print('Fetching translation from URL: $url'); // For debugging
+
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        // Extract the 'translation' field, handle potential null/missing
+        return data['translation']?.toString() ?? 'Translation not found.';
+      } else {
+        print('Failed to load translation: ${response.statusCode}, Body: ${response.body}');
+        return 'Error: Could not translate (Status Code: ${response.statusCode})';
+      }
+    } catch (e) {
+      print('Error fetching translation: $e');
+      return 'Error: Could not translate (Network Error)';
     }
   }
 
@@ -116,22 +123,21 @@ class _TranslationPageState extends State<TranslationPage> {
   @override
   void initState() {
     super.initState();
-    // Start fetching translation when the page initializes
     _fetchAndSaveTranslation();
   }
 
   // New method to orchestrate fetching translation and saving history
   Future<void> _fetchAndSaveTranslation() async {
     setState(() {
-      _isLoadingTranslation = true; // Show loading indicator
-      _translatedText = ''; // Clear previous translation
+      _isLoadingTranslation = true;
+      _translatedText = '';
     });
 
     final fetchedText = await _fetchTranslation(widget.originalText);
 
     setState(() {
-      _translatedText = fetchedText; // Update with fetched translation
-      _isLoadingTranslation = false; // Hide loading indicator
+      _translatedText = fetchedText;
+      _isLoadingTranslation = false;
     });
 
     // Save history only after translation is available
@@ -173,14 +179,13 @@ class _TranslationPageState extends State<TranslationPage> {
                   },
                 ),
                 const SizedBox(height: 16),
-                // Display loading indicator or translated text
                 _isLoadingTranslation
                     ? Center(
                   child: CircularProgressIndicator(color: theme.colorScheme.primary),
                 )
                     : TranslationCard(
                   language: widget.toLanguage,
-                  text: _translatedText, // Use the state variable
+                  text: _translatedText,
                   isFavorited: isTranslatedFavorited,
                   onCopyPressed: () {
                     Clipboard.setData(ClipboardData(text: _translatedText));
