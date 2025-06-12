@@ -98,7 +98,6 @@ class HomeDrawer extends StatelessWidget {
                 ),
                 onTap: () async {
                   await onLogout();
-                  Navigator.pop(context);
                 },
               ),
           ],
