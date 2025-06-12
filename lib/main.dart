@@ -28,7 +28,6 @@ class MyApp extends StatelessWidget {
       home: StreamBuilder<User?>(
         stream: FirebaseAuth.instance.authStateChanges(), // Listen for auth changes
         builder: (context, snapshot) {
-          // You can show a simple loading indicator if the connection is waiting
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
               body: Center(
@@ -36,8 +35,6 @@ class MyApp extends StatelessWidget {
               ),
             );
           }
-          // Always return HomePage, and pass the current user object
-          // This keeps HomePage as the root, regardless of login status
           return HomePage(
             currentUser: snapshot.data, // This will be User object or null
           );
