@@ -144,12 +144,27 @@ class _TranslationPageState extends State<TranslationPage> {
     await _saveTranslationHistory(widget.originalText, _translatedText);
   }
 
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: theme.appBarTheme.backgroundColor,
+        elevation: theme.appBarTheme.elevation ?? 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.iconTheme.color, size: 25),
+          onPressed: () => Navigator.of(context).pop(),
+          tooltip: 'Back',
+        ),
+        title: Text(
+          'Translation',
+          style: theme.appBarTheme.titleTextStyle,
+        ),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -166,7 +181,7 @@ class _TranslationPageState extends State<TranslationPage> {
                       SnackBar(
                         content: const Text('Original text copied to clipboard'),
                         duration: const Duration(milliseconds: 500),
-                        backgroundColor: theme.snackBarTheme.backgroundColor ?? theme.colorScheme.secondary,
+                        backgroundColor: theme.colorScheme.secondary,
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
@@ -180,9 +195,7 @@ class _TranslationPageState extends State<TranslationPage> {
                 ),
                 const SizedBox(height: 16),
                 _isLoadingTranslation
-                    ? Center(
-                  child: CircularProgressIndicator(color: theme.colorScheme.primary),
-                )
+                    ? Center(child: CircularProgressIndicator(color: Color(0xFF219EBC)))
                     : TranslationCard(
                   language: widget.toLanguage,
                   text: _translatedText,
@@ -193,7 +206,7 @@ class _TranslationPageState extends State<TranslationPage> {
                       SnackBar(
                         content: const Text('Translated text copied to clipboard'),
                         duration: const Duration(milliseconds: 500),
-                        backgroundColor: theme.snackBarTheme.backgroundColor ?? theme.colorScheme.secondary,
+                        backgroundColor: theme.colorScheme.secondary,
                         behavior: SnackBarBehavior.floating,
                       ),
                     );

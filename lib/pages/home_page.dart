@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth
-import 'dart:async'; // Still needed for Future.delayed, but not StreamSubscription
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
 import 'package:ahhhtest/components/home_drawer.dart';
 import 'package:ahhhtest/components/login_signup_dialog.dart';
 import 'package:ahhhtest/components/translation_input_card.dart';
@@ -9,7 +8,6 @@ import 'package:ahhhtest/pages/camera_page.dart';
 import 'package:ahhhtest/pages/translation_page.dart';
 
 class HomePage extends StatefulWidget {
-  // 1. Add currentUser as a required parameter
   final User? currentUser;
 
   const HomePage({Key? key, required this.currentUser}) : super(key: key);
@@ -26,44 +24,40 @@ class _HomePageState extends State<HomePage> {
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
-  // 2. Derive isLoggedIn directly from widget.currentUser
   bool get isLoggedIn => widget.currentUser != null;
-
-  // 3. REMOVE the StreamSubscription as it's now handled by MyApp
-  // late StreamSubscription<User?> _authStateChangesSubscription;
 
   @override
   void initState() {
     super.initState();
-    print('HomePage: initState called.');
-    // 4. REMOVE the old authStateChanges listener in initState
-    // _authStateChangesSubscription = FirebaseAuth.instance.authStateChanges().listen((user) { ... });
 
-    // Initial check now directly uses the currentUser passed in
+    // Set status bar overlay style to match light background (dark icons)
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ),
+    );
+
     if (widget.currentUser != null) {
-      print('HomePage: Initial user found via widget.currentUser: ${widget.currentUser!.uid}');
+      print('HomePage: Initial user found: ${widget.currentUser!.uid}');
     } else {
-      print('HomePage: No initial user found via widget.currentUser.');
+      print('HomePage: No initial user.');
     }
   }
 
-  // 5. Add didUpdateWidget to log when currentUser changes
   @override
   void didUpdateWidget(covariant HomePage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.currentUser != oldWidget.currentUser) {
-      print('HomePage: currentUser property updated. Now: ${widget.currentUser != null ? 'logged in' : 'logged out'}');
-      // No need for setState here, as the parent (StreamBuilder) already rebuilt us
-      // and Flutter will rebuild the UI reflecting the new widget.currentUser
+      print('HomePage: currentUser updated: ${widget.currentUser != null ? 'logged in' : 'logged out'}');
     }
   }
 
   @override
   void dispose() {
-    print('HomePage: dispose called.'); // This should now almost never print
     textController.dispose();
     textFieldFocusNode.dispose();
-    // 6. REMOVE _authStateChangesSubscription.cancel();
     super.dispose();
   }
 
@@ -80,9 +74,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (context) => LoginSignUpDialog(
         onLogin: () {
-          print('HomePage: LoginSignUpDialog onLogin called. (User logged in)');
-          // No manual setState needed here. The StreamBuilder in main.dart
-          // will detect the Firebase login and rebuild HomePage with the User object.
+          print('HomePage: User logged in via dialog.');
         },
       ),
     );
@@ -90,45 +82,37 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // 7. isLoggedIn now comes from the getter
-    print('HomePage: build method called. isLoggedIn: $isLoggedIn (derived from widget.currentUser)');
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
 
     return Scaffold(
       key: scaffoldKey,
       drawer: HomeDrawer(
-        isLoggedIn: isLoggedIn, // Pass derived isLoggedIn
+        isLoggedIn: isLoggedIn,
         onLogout: () async {
-          print('HomePage: Logout button clicked!');
           try {
             await FirebaseAuth.instance.signOut();
-            print('HomePage: FirebaseAuth signOut successful.');
-          } on FirebaseAuthException catch (e) {
-            print('HomePage: FirebaseAuthException during signOut: ${e.code} - ${e.message}');
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Logout Error: ${e.message}')),
-            );
+            print('User signed out.');
           } catch (e) {
-            print('HomePage: Unexpected error during signOut: $e');
+            print('Logout error: $e');
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('An unexpected error occurred during logout: $e')),
+              SnackBar(content: Text('Logout Error: $e')),
             );
           } finally {
             if (scaffoldKey.currentState?.isDrawerOpen == true) {
-              Navigator.of(context).pop(); // This closes the drawer
-              print('HomePage: Drawer closed after logout attempt.');
+              Navigator.of(context).pop(); // Close the drawer
             }
           }
         },
       ),
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Background
-            if (!isDarkMode)
-              Container(
+        backgroundColor: theme.scaffoldBackgroundColor,
+      extendBodyBehindAppBar: true, // << This is important!
+      body: Stack(
+        children: [
+          // Gradient background
+          if (!isDarkMode)
+            Positioned.fill(
+              child: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.bottomLeft,
@@ -142,85 +126,97 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-
-            // Top bar
-            Align(
-              alignment: Alignment.topCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(top: 16, left: 8, right: 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.menu_rounded, color: theme.iconTheme.color,size: 25,),
-                      onPressed: () {
-                        print('HomePage: Opening drawer.');
-                        scaffoldKey.currentState?.openDrawer();
-                      },
-                    ),
-                    // Optionally show login icon only if not logged in
-                    IconButton(
-                      icon: Icon(Icons.person_outline, color: theme.iconTheme.color, size: 25,),
-                      onPressed: isLoggedIn ? null : showLoginDialog, // Disable if logged in
-                    ),
-                  ],
-                ),
-              ),
             ),
 
-            // Translation input card
-            Align(
-              alignment: Alignment.bottomCenter,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: TranslationInputCard(
-                  fromLanguage: fromLanguage,
-                  onToggleLanguages: toggleLanguages,
-                  textController: textController,
-                  focusNode: textFieldFocusNode,
-                  onCameraPressed: () {
-                    print('HomePage: Camera button pressed.');
-                    FocusScope.of(context).unfocus();
-                    Future.delayed(const Duration(milliseconds: 300), () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CameraPage(),
-                        ),
-                      );
-                    });
-                  },
-                  onTranslatePressed: () {
-                    print('HomePage: Translate button pressed.');
-                    final inputText = textController.text.trim();
-                    if (inputText.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter text to translate'),
-                          duration: Duration(seconds: 1),
-                        ),
-                      );
-                      print('HomePage: Empty text for translation.');
-                      return;
-                    }
+          // Top bar (no SafeArea so it can paint behind status bar)
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 8, // Dynamic top padding
+                left: 8,
+                right: 8,
+              ), // Adjust top padding if needed
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.menu_rounded,
+                      color: theme.iconTheme.color,
+                      size: 25,
+                    ),
+                    onPressed: () {
+                      scaffoldKey.currentState?.openDrawer();
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      Icons.person_outline,
+                      color: theme.iconTheme.color,
+                      size: 25,
+                    ),
+                    onPressed: isLoggedIn ? null : showLoginDialog,
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Bottom input
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).padding.bottom + 16, // Responsive
+              ),
+              child: TranslationInputCard(
+                fromLanguage: fromLanguage,
+                toLanguage: toLanguage,
+                onToggleLanguages: toggleLanguages,
+                textController: textController,
+                focusNode: textFieldFocusNode,
+                onCameraPressed: () {
+                  FocusScope.of(context).unfocus();
+                  Future.delayed(const Duration(milliseconds: 300), () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TranslationPage(
-                          originalText: inputText,
-                          fromLanguage: fromLanguage,
-                          toLanguage: toLanguage,
-                        ),
+                        builder: (context) => const CameraPage(),
                       ),
                     );
-                    print('HomePage: Navigating to TranslationPage.');
-                  },
-                ),
+                  });
+                },
+                onTranslatePressed: () {
+                  final inputText = textController.text.trim();
+                  if (inputText.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Please enter text to translate'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                    return;
+                  }
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => TranslationPage(
+                        originalText: inputText,
+                        fromLanguage: fromLanguage,
+                        toLanguage: toLanguage,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-          ],
-        ),
+          )
+        ],
       ),
     );
+
   }
 }
