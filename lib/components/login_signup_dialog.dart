@@ -104,6 +104,7 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final theme = Theme.of(context);
     final dialogBackground = theme.dialogBackgroundColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
@@ -157,6 +158,7 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
               SizedBox(height: verticalSpacing * 1.5),
               TextFormField(
                 controller: emailController,
+                cursorColor: Color(0xFF219EBC),
                 focusNode: emailFocus,
                 keyboardType: TextInputType.emailAddress,
                 autofillHints: const [AutofillHints.email],
@@ -168,7 +170,7 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                     borderSide: BorderSide(color: textColor.withOpacity(0.4)),
                   ),
                   focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: buttonColor),
+                    borderSide: BorderSide(color:  Color(0xFF219EBC),),
                   ),
                 ),
                 style: TextStyle(fontSize: bodyFontSize, color: textColor),
@@ -187,6 +189,7 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
               ),
               SizedBox(height: verticalSpacing),
               TextFormField(
+                cursorColor: Color(0xFF219EBC),
                 controller: passwordController,
                 focusNode: passwordFocus,
                 obscureText: !passwordVisible,
@@ -198,7 +201,7 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                     borderSide: BorderSide(color: textColor.withOpacity(0.4)),
                   ),
                   focusedBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: buttonColor),
+                    borderSide: BorderSide(color: Color(0xFF219EBC),),
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -238,6 +241,7 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                   focusNode: confirmPasswordFocus,
                   obscureText: !confirmPasswordVisible,
                   textInputAction: TextInputAction.done,
+                  cursorColor: Color(0xFF219EBC),
                   decoration: InputDecoration(
                     labelText: 'Confirm Password',
                     labelStyle: TextStyle(color: textColor.withOpacity(0.7)),
@@ -245,7 +249,7 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                       borderSide: BorderSide(color: textColor.withOpacity(0.4)),
                     ),
                     focusedBorder: UnderlineInputBorder(
-                      borderSide: BorderSide(color: buttonColor),
+                      borderSide: BorderSide(color: Color(0xFF219EBC),),
                     ),
                     suffixIcon: IconButton(
                       icon: Icon(

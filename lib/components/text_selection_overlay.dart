@@ -203,22 +203,55 @@ class TextSelectionOverlay extends StatelessWidget {
       // Pass currentDraggingHandleScreenPosition only if this is the actively dragged handle
       draggingScreenPosition: isDraggingLeftHandleCurrent ? currentDraggingHandleScreenPosition : null,
     );
-    final rightHandlePos = _calculateHandlePosition(
+    final rightHandlePos = _calculateHandlePosition( // Corrected typo here
       isLeftHandle: false,
       transformedRect: effectiveRect,
       // Pass currentDraggingHandleScreenPosition only if this is the actively dragged handle
       draggingScreenPosition: !isDraggingLeftHandleCurrent ? currentDraggingHandleScreenPosition : null,
     );
 
-    // Calculate the top position for the action bar (Translate button)
-    final double actionBarTop = transformedAndScaledRect.top - 50; // Adjust as needed for padding/margin
+    // --- Logic for Translate button positioning ---
+    final double translateButtonApproxHeight = 40.0; // A safe estimate for button height
+    final double verticalPadding = 15.0; // Padding between the button and the selected text
+
+    // Position the action bar strictly above the top of the selected text
+    double actionBarTop = transformedAndScaledRect.top - translateButtonApproxHeight - verticalPadding;
+
+    // Ensure it doesn't go off-screen at the very top.
+    actionBarTop = max(0.0, actionBarTop);
+    // --- End of logic for Translate button positioning ---
 
     return Stack(
       children: [
-        // Translate Button (positioned above the selected text)
+        // Left Drag Handle
+        Positioned(
+          left: leftHandlePos.dx,
+          top: leftHandlePos.dy,
+          child: GestureDetector(
+            onPanStart: onHandlePanStartLeft,
+            onPanUpdate: onHandlePanUpdate,
+            onPanEnd: onHandlePanEnd,
+            child: _dragHandle(true), // Pass true for left handle
+          ),
+        ),
+
+        // Right Drag Handle
+        Positioned(
+          left: rightHandlePos.dx,
+          top: rightHandlePos.dy,
+          child: GestureDetector(
+            onPanStart: onHandlePanStartRight,
+            onPanUpdate: onHandlePanUpdate,
+            onPanEnd: onHandlePanEnd,
+            child: _dragHandle(false), // Pass false for right handle
+          ),
+        ),
+
+        // Translate Button (positioned just above the selected text)
+        // Moved to the end of the Stack's children list to ensure it's drawn on top for clickability.
         Positioned(
           left: transformedAndScaledRect.left + transformedAndScaledRect.width / 2 - 60, // Center horizontally
-          top: actionBarTop,
+          top: actionBarTop, // Position based on the selected text's top
           child: Material(
             elevation: 6,
             borderRadius: BorderRadius.circular(20),
@@ -245,30 +278,6 @@ class TextSelectionOverlay extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-        ),
-
-        // Left Drag Handle
-        Positioned(
-          left: leftHandlePos.dx,
-          top: leftHandlePos.dy,
-          child: GestureDetector(
-            onPanStart: onHandlePanStartLeft,
-            onPanUpdate: onHandlePanUpdate,
-            onPanEnd: onHandlePanEnd,
-            child: _dragHandle(true), // Pass true for left handle
-          ),
-        ),
-
-        // Right Drag Handle
-        Positioned(
-          left: rightHandlePos.dx,
-          top: rightHandlePos.dy,
-          child: GestureDetector(
-            onPanStart: onHandlePanStartRight,
-            onPanUpdate: onHandlePanUpdate,
-            onPanEnd: onHandlePanEnd,
-            child: _dragHandle(false), // Pass false for right handle
           ),
         ),
       ],
