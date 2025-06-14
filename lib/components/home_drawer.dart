@@ -1,63 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Import FirebaseAuth to access User
 import 'package:ahhhtest/pages/favorites_page.dart';
 import 'package:ahhhtest/pages/history_page.dart';
 
 class HomeDrawer extends StatelessWidget {
-  final bool isLoggedIn;
+  final User? currentUser; // Change from bool isLoggedIn to User? currentUser
   final Future<void> Function() onLogout;
 
   const HomeDrawer({
     Key? key,
-    required this.isLoggedIn,
+    required this.currentUser, // Now takes currentUser directly
     required this.onLogout,
   }) : super(key: key);
 
+  // Helper getter to determine if the logout button should be shown
+  // It shows if a user is logged in AND they are NOT anonymous.
+  bool get _shouldShowLogoutButton => currentUser != null && !currentUser!.isAnonymous;
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context); // Get theme here
+    final isDark = theme.brightness == Brightness.dark;
 
     return Drawer(
       elevation: 16,
       child: Container(
-        color: isDark ? const Color(0xFF121212) : Colors.white,
+        color: theme.scaffoldBackgroundColor, // Use theme for background color (e.g., white in light mode)
         child: Column(
           children: [
-            const SizedBox(height: 48),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Menu',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+            // Drawer Header (Updated for consistent background and left alignment)
+            DrawerHeader(
+              decoration: BoxDecoration(
+                // Use consistent white for light mode, or grey for dark mode
+                color: isDark ? Colors.grey[800] : Colors.white,
+              ),
+              child: Align( // Use Align to ensure content is pushed to start
+                alignment: Alignment.bottomLeft, // Align content to bottom-left
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start, // Ensure content is left-aligned
+                  mainAxisSize: MainAxisSize.min, // Wrap content tightly
+                  children: [
+                    Icon(
+                      Icons.person_pin,
+                      size: 60,
                       color: isDark ? Colors.white : Colors.black,
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.arrow_back_ios_rounded,
-                      color: isDark ? Colors.white : Colors.black, size: 25,
+                    const SizedBox(height: 8),
+                    Text(
+                      // Display user email if available, otherwise "Guest"
+                      currentUser?.email ?? 'Guest',
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    onPressed: () => Navigator.pop(context),
-                    tooltip: 'Close Menu',
-                  ),
-                ],
+                    Text(
+                      // Display "Anonymous" or "Signed In" status
+                      currentUser != null
+                          ? (currentUser!.isAnonymous ? 'Anonymous' : 'Signed In')
+                          : 'Not Signed In',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        color: isDark ? Colors.white70 : Colors.black54,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-            Divider(
-              color: isDark
-                  ? Colors.white.withOpacity(0.1)
-                  : const Color.fromRGBO(204, 214, 218, 1),
-              thickness: 1.5,
-            ),
+
+            // Removed the Divider as requested
 
             ListTile(
               leading: Icon(Icons.favorite_border_rounded,
-                color: isDark ? Colors.white : Colors.black,
+                color: theme.iconTheme.color, // Use theme icon color
               ),
               title: Text('Favorites',
-                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                style: theme.textTheme.bodyLarge, // Use theme text style
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -72,10 +90,10 @@ class HomeDrawer extends StatelessWidget {
 
             ListTile(
               leading: Icon(Icons.history_rounded,
-                color: isDark ? Colors.white : Colors.black,
+                color: theme.iconTheme.color, // Use theme icon color
               ),
               title: Text('Recent History',
-                style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                style: theme.textTheme.bodyLarge, // Use theme text style
               ),
               onTap: () {
                 Navigator.pop(context);
@@ -88,13 +106,14 @@ class HomeDrawer extends StatelessWidget {
               },
             ),
 
-            if (isLoggedIn)
+            // Conditionally show the Logout button
+            if (_shouldShowLogoutButton) // Use the new getter here
               ListTile(
                 leading: Icon(Icons.logout,
-                  color: isDark ? Colors.white : Colors.black,
+                  color: theme.iconTheme.color, // Use theme icon color
                 ),
                 title: Text('Logout',
-                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                  style: theme.textTheme.bodyLarge, // Use theme text style
                 ),
                 onTap: () async {
                   await onLogout();
