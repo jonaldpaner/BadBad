@@ -24,7 +24,12 @@ class _HomePageState extends State<HomePage> {
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
+  // This getter determines if a user is logged in at all (anonymous or permanent)
   bool get isLoggedIn => widget.currentUser != null;
+
+  // New getter: determines if the login/signup prompt should be shown.
+  // This is true if there's no user OR the current user is anonymous.
+  bool get _shouldShowLoginPrompt => widget.currentUser == null || widget.currentUser!.isAnonymous;
 
   @override
   void initState() {
@@ -75,6 +80,7 @@ class _HomePageState extends State<HomePage> {
       builder: (context) => LoginSignUpDialog(
         onLogin: () {
           print('HomePage: User logged in via dialog.');
+          // No need to dismiss here, StreamBuilder in main.dart handles rebuild
         },
       ),
     );
@@ -88,7 +94,7 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       key: scaffoldKey,
       drawer: HomeDrawer(
-        isLoggedIn: isLoggedIn,
+        currentUser: widget.currentUser,
         onLogout: () async {
           try {
             await FirebaseAuth.instance.signOut();
@@ -105,8 +111,8 @@ class _HomePageState extends State<HomePage> {
           }
         },
       ),
-        backgroundColor: theme.scaffoldBackgroundColor,
-      extendBodyBehindAppBar: true, // << This is important!
+      backgroundColor: theme.scaffoldBackgroundColor,
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           // Gradient background
@@ -138,7 +144,7 @@ class _HomePageState extends State<HomePage> {
                 top: MediaQuery.of(context).padding.top + 8, // Dynamic top padding
                 left: 8,
                 right: 8,
-              ), // Adjust top padding if needed
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -152,13 +158,14 @@ class _HomePageState extends State<HomePage> {
                       scaffoldKey.currentState?.openDrawer();
                     },
                   ),
+                  // MODIFIED: This button is now enabled if no user OR if user is anonymous
                   IconButton(
                     icon: Icon(
                       Icons.person_outline,
                       color: theme.iconTheme.color,
                       size: 25,
                     ),
-                    onPressed: isLoggedIn ? null : showLoginDialog,
+                    onPressed: _shouldShowLoginPrompt ? showLoginDialog : null,
                   ),
                 ],
               ),
@@ -170,7 +177,7 @@ class _HomePageState extends State<HomePage> {
             alignment: Alignment.bottomCenter,
             child: Padding(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).padding.bottom + 16, // Responsive
+                bottom: MediaQuery.of(context).padding.bottom + 16,
               ),
               child: TranslationInputCard(
                 fromLanguage: fromLanguage,
@@ -217,6 +224,5 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
-
   }
 }
