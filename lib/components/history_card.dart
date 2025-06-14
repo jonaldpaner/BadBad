@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 
 class HistoryCardWidget extends StatelessWidget {
-  final String contentType; // 'type', 'camera', or others
-  final String message;
+  final String contentType; // 'text', 'camera', or others (as per Firebase 'type' field)
+  final String message; // This is intended to be the originalText from Firebase
+  final String documentId; // To identify the document to delete
+  final VoidCallback onDelete; // Callback for when delete is confirmed
 
   const HistoryCardWidget({
     Key? key,
     required this.contentType,
-    this.message = 'Hello, how are you today?',
+    required this.message, // Made required, as it comes from Firebase data
+    required this.documentId,
+    required this.onDelete,
   }) : super(key: key);
 
   @override
@@ -15,14 +19,14 @@ class HistoryCardWidget extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // Choose icon based on contentType
+    // Choose icon based on contentType (which directly comes from Firebase 'type' field)
     IconData leftIcon;
     if (contentType == 'camera') {
       leftIcon = Icons.camera_alt_outlined;
-    } else if (contentType == 'type') {
+    } else if (contentType == 'text') { // FIXED: Changed 'type' to 'text' to match Firebase field
       leftIcon = Icons.textsms_outlined;
     } else {
-      leftIcon = Icons.help_outline;
+      leftIcon = Icons.help_outline; // Default for unknown types
     }
 
     return Padding(
@@ -103,8 +107,8 @@ class HistoryCardWidget extends StatelessWidget {
                     ) ?? false;
 
                     if (confirmed) {
-                      // Handle delete action here
-                      print('Item deleted');
+                      onDelete(); // CALL THE onDelete CALLBACK HERE
+                      print('Item deleted from HistoryCardWidget'); // For debugging
                     }
                   },
                 ),

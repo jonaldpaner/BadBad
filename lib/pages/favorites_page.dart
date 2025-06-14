@@ -17,11 +17,9 @@ class FavoritesPageWidget extends StatefulWidget {
 class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // ADDED: Initialize Firestore and FirebaseAuth instances
+  // Initialize Firestore and FirebaseAuth instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  // REMOVED: No longer need the local _favorites list
 
   void _clearAllFavorites() async {
     final User? user = _auth.currentUser;
@@ -90,7 +88,6 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
     }
   }
 
-  // MODIFIED: _removeFavorite now updates Firestore
   void _removeFavorite(String documentId, bool isOriginal) async {
     final User? user = _auth.currentUser;
     if (user == null) {
@@ -203,22 +200,25 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
         if (documents.isEmpty) {
           return Scaffold(
             appBar: AppBar(
-              backgroundColor: Colors.white,
+              backgroundColor: theme.appBarTheme.backgroundColor, // Use theme
               leading: IconButton(
-                icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 30),
+                icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.iconTheme.color, size: 25), // Use theme
                 onPressed: () => Navigator.of(context).pop(),
                 tooltip: 'Back',
               ),
-              title: const Text(
+              title: Text(
                 'Favorites',
-                style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 18),
+                style: theme.textTheme.titleLarge?.copyWith( // Use theme
+                  color: theme.textTheme.bodyLarge?.color, // Use theme
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               centerTitle: true,
               elevation: 0,
               actions: [
                 IconButton(
-                  icon: const Icon(Icons.more_vert, size: 30),
-                  color: Colors.black,
+                  icon: Icon(Icons.more_vert, size: 25), // Use theme
+                  color: theme.iconTheme.color, // Use theme
                   onPressed: _clearAllFavorites,
                   tooltip: 'Clear all favorites',
                 ),
@@ -244,23 +244,26 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
           key: scaffoldKey,
           backgroundColor: theme.scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: theme.appBarTheme.backgroundColor, // Use theme
             automaticallyImplyLeading: false,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black, size: 30),
+              icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.iconTheme.color, size: 25), // Use theme
               onPressed: () => Navigator.of(context).pop(),
               tooltip: 'Back',
             ),
-            title: const Text(
+            title: Text(
               'Favorites',
-              style: TextStyle(color: Colors.black, fontWeight: FontWeight.w600, fontSize: 18),
+              style: theme.textTheme.titleLarge?.copyWith( // Use theme
+                color: theme.textTheme.bodyLarge?.color, // Use theme
+                fontWeight: FontWeight.w600,
+              ),
             ),
             centerTitle: true,
             elevation: 0,
             actions: [
               IconButton(
-                icon: const Icon(Icons.more_vert, size: 30),
-                color: Colors.black,
+                icon: Icon(Icons.more_vert, size: 25), // Use theme
+                color: theme.iconTheme.color, // Use theme
                 onPressed: _clearAllFavorites,
                 tooltip: 'Clear all favorites',
               ),
@@ -296,7 +299,10 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
 
                 return FavoritesCardWidget(
                   text: displayedText,
-                  onFavoritePressed: () => _removeFavorite(doc.id, isOriginal),
+                  contentType: data['type'] ?? 'text', // <-- Added this line
+                  documentId: doc.id,
+                  isOriginalTextFavorited: isOriginal,
+                  onFavoriteRemoved: _removeFavorite,
                   onTap: () {
                     // Navigate to TranslationPage, passing the original and translated text
                     Navigator.push(
@@ -306,9 +312,6 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
                           originalText: originalText,
                           fromLanguage: data['fromLanguage'] ?? 'English', // Pass actual languages
                           toLanguage: data['toLanguage'] ?? 'Ata Manobo',
-                          // You might want to pass the document ID here if you want to
-                          // display the exact saved state in TranslationPage (including favorite flags)
-                          // For simplicity, we are passing the text values for now.
                         ),
                       ),
                     );
