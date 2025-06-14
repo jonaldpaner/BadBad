@@ -17,7 +17,7 @@ class TranslationPage extends StatefulWidget {
     required this.originalText,
     required this.fromLanguage,
     required this.toLanguage,
-    this.initialTranslatedText, // Now optional
+    this.initialTranslatedText,
   }) : super(key: key);
 
   @override
