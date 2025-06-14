@@ -10,12 +10,14 @@ class TranslationPage extends StatefulWidget {
   final String originalText;
   final String fromLanguage;
   final String toLanguage;
+  final String? initialTranslatedText; // ADDED: Optional parameter for pre-existing translation
 
   const TranslationPage({
     Key? key,
     required this.originalText,
     required this.fromLanguage,
     required this.toLanguage,
+    this.initialTranslatedText,
   }) : super(key: key);
 
   @override
@@ -31,9 +33,9 @@ class _TranslationPageState extends State<TranslationPage> {
   bool _isLoadingTranslation = true; // State to manage loading indicator
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance; // Corrected to use .instance
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // MODIFIED: Asynchronous function to fetch translation from the API
+  // Asynchronous function to fetch translation from the API
   Future<String> _fetchTranslation(String message) async {
     // Determine the API endpoint based on the fromLanguage
     String? apiEndpoint;
@@ -42,20 +44,18 @@ class _TranslationPageState extends State<TranslationPage> {
     } else if (widget.fromLanguage == 'English') {
       apiEndpoint = 'eng';
     } else {
-      // If fromLanguage is neither 'Ata Manobo' nor 'English', return an empty string
-      return '';
+      return 'Unsupported language for translation.';
     }
 
     try {
       final encodedMessage = Uri.encodeComponent(message); // Encode the message for the URL
       final url = Uri.parse('https://badbad-api.onrender.com/translate/$apiEndpoint?message=$encodedMessage');
-      print('Fetching translation from URL: $url'); // For debugging
+      print('Fetching translation from URL: $url');
 
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
-        // Extract the 'translation' field, handle potential null/missing
         return data['translation']?.toString() ?? 'Translation not found.';
       } else {
         print('Failed to load translation: ${response.statusCode}, Body: ${response.body}');
@@ -68,7 +68,7 @@ class _TranslationPageState extends State<TranslationPage> {
   }
 
   // Method to save translation history to Firestore and get the document ID
-  Future<void> _saveTranslationHistory(String originalText, String translatedText) async {
+  Future<void> _saveNewTranslationHistory(String originalText, String translatedText) async {
     final User? user = _auth.currentUser;
 
     if (user != null) {
@@ -87,16 +87,16 @@ class _TranslationPageState extends State<TranslationPage> {
           'type': 'text',
         });
         _currentTranslationDocId = docRef.id;
-        print('Translation history saved to Firestore. Doc ID: $_currentTranslationDocId');
+        print('New translation history saved to Firestore. Doc ID: $_currentTranslationDocId');
       } catch (e) {
-        print('Error saving translation history to Firestore: $e');
+        print('Error saving new translation history to Firestore: $e');
       }
     } else {
-      print('User not logged in. Translation history not saved to Firestore.');
+      print('User not logged in. New translation history not saved to Firestore.');
     }
   }
 
-  // Method to update the favorite status in Firestore
+  // Method to update the favorite status in Firestore for the current displayed translation
   Future<void> _updateFavoriteStatusInFirestore(String fieldName, bool value) async {
     final User? user = _auth.currentUser;
 
@@ -123,11 +123,22 @@ class _TranslationPageState extends State<TranslationPage> {
   @override
   void initState() {
     super.initState();
-    _fetchAndSaveTranslation();
+    print('TranslationPage: initState called.');
+    print('TranslationPage: originalText received: "${widget.originalText}"');
+    print('TranslationPage: initialTranslatedText received: "${widget.initialTranslatedText}"');
+
+    if (widget.initialTranslatedText != null && widget.initialTranslatedText!.isNotEmpty) {
+      _translatedText = widget.initialTranslatedText!;
+      _isLoadingTranslation = false;
+      print('TranslationPage: Displaying initial translated text from history.');
+    } else {
+      print('TranslationPage: No initial translated text, fetching new translation from API.');
+      _fetchNewTranslationAndSaveHistory();
+    }
   }
 
-  // New method to orchestrate fetching translation and saving history
-  Future<void> _fetchAndSaveTranslation() async {
+  // Orchestrates fetching translation and saving history for NEW translations
+  Future<void> _fetchNewTranslationAndSaveHistory() async {
     setState(() {
       _isLoadingTranslation = true;
       _translatedText = '';
@@ -140,13 +151,12 @@ class _TranslationPageState extends State<TranslationPage> {
       _isLoadingTranslation = false;
     });
 
-    // Save history only after translation is available
-    await _saveTranslationHistory(widget.originalText, _translatedText);
+    await _saveNewTranslationHistory(widget.originalText, _translatedText);
   }
-
 
   @override
   Widget build(BuildContext context) {
+    print('TranslationPage: build method called. Current translated text: "${_translatedText}"');
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -171,6 +181,7 @@ class _TranslationPageState extends State<TranslationPage> {
           child: SingleChildScrollView(
             child: Column(
               children: [
+                // Removed the temporary Text widget
                 TranslationCard(
                   language: widget.fromLanguage,
                   text: widget.originalText,
@@ -195,7 +206,7 @@ class _TranslationPageState extends State<TranslationPage> {
                 ),
                 const SizedBox(height: 16),
                 _isLoadingTranslation
-                    ? Center(child: CircularProgressIndicator(color: Color(0xFF219EBC)))
+                    ? Center(child: CircularProgressIndicator(color: theme.colorScheme.secondary))
                     : TranslationCard(
                   language: widget.toLanguage,
                   text: _translatedText,
@@ -238,12 +249,10 @@ class _TranslateMoreButton extends StatelessWidget {
     final theme = Theme.of(context);
     return TextButton.icon(
       onPressed: () => Navigator.of(context).pop(),
-      icon: Icon(Icons.translate,color: const Color(0xFF219EBC)
-      ),
+      icon: Icon(Icons.translate,color: Color(0xFF219EBC)),
       label: Text(
         'Translate More',
-        style: TextStyle(fontSize: 16,color: const Color(0xFF219EBC)
-        ),
+        style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16, color: const Color(0xFF219EBC)),
       ),
     );
   }

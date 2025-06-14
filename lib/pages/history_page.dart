@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ahhhtest/components/history_card.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ADDED: Firestore import
-import 'package:firebase_auth/firebase_auth.dart'; // ADDED: Auth import
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:ahhhtest/pages/translation_page.dart'; // Import TranslationPage
 
 class HistoryPageWidget extends StatefulWidget {
   const HistoryPageWidget({Key? key}) : super(key: key);
@@ -16,13 +17,11 @@ class HistoryPageWidget extends StatefulWidget {
 class _HistoryPageWidgetState extends State<HistoryPageWidget> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // ADDED: Initialize Firestore and FirebaseAuth instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // MODIFIED: Clear all history logic to use Firestore
   void _clearAllHistory() async {
-    final User? user = _auth.currentUser; // Now _auth is defined
+    final User? user = _auth.currentUser;
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please log in to clear history.')),
@@ -51,15 +50,13 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
     );
 
     if (confirm == true) {
-      // Get all documents in the user's translations subcollection and delete them
       try {
-        final QuerySnapshot snapshot = await _firestore // Now _firestore is defined
+        final QuerySnapshot snapshot = await _firestore
             .collection('users')
             .doc(user.uid)
             .collection('translations')
             .get();
 
-        // Use a batch write for efficiency when deleting multiple documents
         WriteBatch batch = _firestore.batch();
         for (DocumentSnapshot doc in snapshot.docs) {
           batch.delete(doc.reference);
@@ -78,7 +75,6 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
     }
   }
 
-  // ADDED: Function to delete a single history item from Firebase
   void _deleteHistoryItem(String documentId) async {
     final User? user = _auth.currentUser;
     if (user == null) {
@@ -111,7 +107,6 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
     }
   }
 
-  // Helper function to add spacing between cards
   List<Widget> withSpacing(List<Widget> cards) {
     return [
       for (int i = 0; i < cards.length; i++) ...[
@@ -124,10 +119,8 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final User? user = _auth.currentUser; // Get current user here
+    final User? user = _auth.currentUser;
 
-    // ADDED: Display message if user is not logged in
     if (user == null) {
       return Scaffold(
         appBar: AppBar(
@@ -167,14 +160,13 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
       );
     }
 
-    // ADDED: StreamBuilder to fetch data from Firestore
     return StreamBuilder<QuerySnapshot>(
       stream: _firestore
           .collection('users')
           .doc(user.uid)
           .collection('translations')
-          .orderBy('timestamp', descending: true) // Order by timestamp (most recent first)
-          .snapshots(), // Listen for real-time updates
+          .orderBy('timestamp', descending: true)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -188,7 +180,6 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
           );
         }
 
-        // If no data, show a message
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Scaffold(
             appBar: AppBar(
@@ -236,10 +227,8 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
           );
         }
 
-        // Process fetched data
         final List<DocumentSnapshot> documents = snapshot.data!.docs;
 
-        // Group history by date (Today, Yesterday, Last Week, etc.)
         final Map<String, List<Widget>> groupedHistory = {
           'Today': [],
           'Yesterday': [],
@@ -271,13 +260,24 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
 
           groupedHistory[groupKey]?.add(
             HistoryCardWidget(
-              contentType: data['type'] ?? 'text', // Default to 'text' if not specified
-              message: data['originalText'] ?? 'N/A', // Display original text
-              documentId: doc.id, // PASS THE DOCUMENT ID HERE
-              onDelete: () => _deleteHistoryItem(doc.id), // PASS THE DELETE FUNCTION HERE
-              // You might want to pass more data if your HistoryCardWidget can use it
-              // e.g., translatedText: data['translatedText']
-              // You could also add onTap to navigate back to TranslationPage with the saved data
+              contentType: data['type'] ?? 'text',
+              message: data['originalText'] ?? 'N/A',
+              documentId: doc.id,
+              onDelete: () => _deleteHistoryItem(doc.id),
+              onTap: () { // ADDED: onTap to navigate to TranslationPage
+                print('Attempting to navigate to TranslationPage for document: ${doc.id}');
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TranslationPage(
+                      originalText: data['originalText'] ?? '',
+                      fromLanguage: data['fromLanguage'] ?? 'English',
+                      toLanguage: data['toLanguage'] ?? 'Ata Manobo',
+                      initialTranslatedText: data['translatedText'] ?? '',
+                    ),
+                  ),
+                );
+              },
             ),
           );
         }
@@ -321,7 +321,6 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Only show sections if they have data
                   if (groupedHistory['Today']!.isNotEmpty) ...[
                     Text(
                       'Today',
@@ -366,9 +365,6 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
                     ...withSpacing(groupedHistory['Older']!),
                     const SizedBox(height: 24),
                   ],
-                  // If all sections are empty, and snapshot.data!.docs was not empty,
-                  // it means maybe data is not grouped correctly, or there's some filter.
-                  // But the initial empty check handles total emptiness.
                 ],
               ),
             ),
