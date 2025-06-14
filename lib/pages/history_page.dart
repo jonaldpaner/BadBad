@@ -78,6 +78,39 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
     }
   }
 
+  // ADDED: Function to delete a single history item from Firebase
+  void _deleteHistoryItem(String documentId) async {
+    final User? user = _auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in to delete history items.')),
+      );
+      return;
+    }
+
+    try {
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('translations')
+          .doc(documentId)
+          .delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('History item deleted!'),
+          duration: Duration(milliseconds: 500),
+        ),
+      );
+      print('Document $documentId deleted from Firestore.');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete history item: $e')),
+      );
+      print('Error deleting document $documentId: $e');
+    }
+  }
+
   // Helper function to add spacing between cards
   List<Widget> withSpacing(List<Widget> cards) {
     return [
@@ -240,6 +273,8 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
             HistoryCardWidget(
               contentType: data['type'] ?? 'text', // Default to 'text' if not specified
               message: data['originalText'] ?? 'N/A', // Display original text
+              documentId: doc.id, // PASS THE DOCUMENT ID HERE
+              onDelete: () => _deleteHistoryItem(doc.id), // PASS THE DELETE FUNCTION HERE
               // You might want to pass more data if your HistoryCardWidget can use it
               // e.g., translatedText: data['translatedText']
               // You could also add onTap to navigate back to TranslationPage with the saved data
