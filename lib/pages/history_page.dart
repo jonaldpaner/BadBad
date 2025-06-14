@@ -39,11 +39,18 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
             TextButton(
               onPressed: () => Navigator.pop(alertDialogContext, false),
               child: const Text('Cancel'),
+              style: TextButton.styleFrom(
+                foregroundColor: Color(0xFF219EBC),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(alertDialogContext, true),
               child: const Text('Confirm'),
+              style: TextButton.styleFrom(
+                foregroundColor: Color(0xFF219EBC),
+              ),
             ),
+
           ],
         );
       },
@@ -195,7 +202,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
               ),
               title: Text(
                 'Recent History',
-                style: theme.textTheme.titleMedium?.copyWith(
+                style: theme.textTheme.titleLarge?.copyWith(
                   color: theme.textTheme.bodyLarge?.color,
                   fontWeight: FontWeight.w600,
                 ),
@@ -299,7 +306,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
             ),
             title: Text(
               'Recent History',
-              style: theme.textTheme.titleMedium?.copyWith(
+              style: theme.textTheme.titleLarge?.copyWith(
                 color: theme.textTheme.bodyLarge?.color,
                 fontWeight: FontWeight.w600,
               ),

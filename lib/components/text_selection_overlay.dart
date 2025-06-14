@@ -92,6 +92,8 @@ class TextSelectionOverlay extends StatelessWidget {
   final bool isDraggingLeftHandleCurrent;
   final Rect? transformedFixedAnchorRect;
   final Offset? currentDraggingHandleScreenPosition;
+  final TextBox? leftHandleWord; // New: Explicit word for the left handle
+  final TextBox? rightHandleWord; // New: Explicit word for the right handle
   final void Function(DragStartDetails) onHandlePanStartLeft;
   final void Function(DragStartDetails) onHandlePanStartRight;
   final void Function(DragUpdateDetails) onHandlePanUpdate;
@@ -109,6 +111,8 @@ class TextSelectionOverlay extends StatelessWidget {
     required this.isDraggingLeftHandleCurrent,
     this.transformedFixedAnchorRect,
     this.currentDraggingHandleScreenPosition,
+    this.leftHandleWord, // Initialize the new properties
+    this.rightHandleWord, // Initialize the new properties
     required this.onHandlePanStartLeft,
     required this.onHandlePanStartRight,
     required this.onHandlePanUpdate,
@@ -129,15 +133,19 @@ class TextSelectionOverlay extends StatelessWidget {
   /// The goal is to align the center of the handle's rounded base with the target point (bounding box corner or drag position).
   Offset _calculateHandlePosition({
     required bool isLeftHandle,
-    required Rect transformedRect,
+    required Rect overallTransformedScaledRect, // The combined scaled and transformed rect (fallback)
     required Offset? draggingScreenPosition, // The current position of the finger when dragging
+    required TextBox? specificLeftHandleWord, // The actual word for the left handle (when not dragging)
+    required TextBox? specificRightHandleWord, // The actual word for the right handle (when not dragging)
+    required Size originalImageSize,
+    required Size previewSize,
+    required TransformationController transformationController,
   }) {
     // Get the internal coordinates of the handle's visual anchor point
     // This is the center of the rounded base of the teardrop, relative to the SizedBox's top-left (0,0)
     final double visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2;
     final double visualAnchorY = _DragHandleShapePainter._CONTAINER_HEIGHT - _DragHandleShapePainter._CIRCLE_RADIUS;
 
-    // Determine the target screen position for the visual anchor
     double targetScreenX;
     double targetScreenY;
 
@@ -146,13 +154,36 @@ class TextSelectionOverlay extends StatelessWidget {
       targetScreenX = draggingScreenPosition.dx;
       targetScreenY = draggingScreenPosition.dy;
     } else {
-      // If not dragging, position the handle based on the bounding box corners.
-      if (isLeftHandle) {
-        targetScreenX = transformedRect.bottomLeft.dx;
-        targetScreenY = transformedRect.bottomLeft.dy;
+      // If not dragging, position the handle based on the explicit handle words.
+      final TextBox? targetWord = isLeftHandle ? specificLeftHandleWord : specificRightHandleWord;
+
+      if (targetWord != null) {
+        // Scale and transform the specific handle word's bounding box
+        final scaledWordRect = BoundingBoxPainter.scaleRectForFit(
+          targetWord.rect,
+          originalImageSize,
+          previewSize,
+          BoxFit.cover,
+        );
+        final transformedWordRect = MatrixUtils.transformRect(transformationController.value, scaledWordRect);
+
+        if (isLeftHandle) {
+          targetScreenX = transformedWordRect.bottomLeft.dx;
+          targetScreenY = transformedWordRect.bottomLeft.dy;
+        } else {
+          targetScreenX = transformedWordRect.bottomRight.dx;
+          targetScreenY = transformedWordRect.bottomRight.dy;
+        }
       } else {
-        targetScreenX = transformedRect.bottomRight.dx;
-        targetScreenY = transformedRect.bottomRight.dy;
+        // Fallback: If no specific handle word is set (e.g., initial state without selection),
+        // use the corners of the overall selection rectangle.
+        if (isLeftHandle) {
+          targetScreenX = overallTransformedScaledRect.bottomLeft.dx;
+          targetScreenY = overallTransformedScaledRect.bottomLeft.dy;
+        } else {
+          targetScreenX = overallTransformedScaledRect.bottomRight.dx;
+          targetScreenY = overallTransformedScaledRect.bottomRight.dy;
+        }
       }
     }
 
@@ -193,21 +224,26 @@ class TextSelectionOverlay extends StatelessWidget {
       MatrixUtils.transformPoint(matrix, scaledRect.bottomRight),
     );
 
-    // Determine the effective rectangle for handle positioning (fixed anchor vs. current selection)
-    final effectiveRect = transformedFixedAnchorRect ?? transformedAndScaledRect;
-
     // Calculate positions for both handles using the helper method.
     final leftHandlePos = _calculateHandlePosition(
       isLeftHandle: true,
-      transformedRect: effectiveRect,
-      // Pass currentDraggingHandleScreenPosition only if this is the actively dragged handle
+      overallTransformedScaledRect: transformedAndScaledRect,
       draggingScreenPosition: isDraggingLeftHandleCurrent ? currentDraggingHandleScreenPosition : null,
+      specificLeftHandleWord: leftHandleWord,
+      specificRightHandleWord: rightHandleWord,
+      originalImageSize: originalImageSize,
+      previewSize: previewSize!,
+      transformationController: transformationController,
     );
-    final rightHandlePos = _calculateHandlePosition( // Corrected typo here
+    final rightHandlePos = _calculateHandlePosition(
       isLeftHandle: false,
-      transformedRect: effectiveRect,
-      // Pass currentDraggingHandleScreenPosition only if this is the actively dragged handle
+      overallTransformedScaledRect: transformedAndScaledRect,
       draggingScreenPosition: !isDraggingLeftHandleCurrent ? currentDraggingHandleScreenPosition : null,
+      specificLeftHandleWord: leftHandleWord,
+      specificRightHandleWord: rightHandleWord,
+      originalImageSize: originalImageSize,
+      previewSize: previewSize!,
+      transformationController: transformationController,
     );
 
     // --- Logic for Translate button positioning ---

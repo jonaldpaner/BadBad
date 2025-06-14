@@ -97,7 +97,6 @@ class HistoryCardWidget extends StatelessWidget {
             Container(
               height: 40,
               decoration: BoxDecoration(
-                color: theme.colorScheme.secondary.withOpacity(0.3),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: IconButton(
@@ -115,10 +114,16 @@ class HistoryCardWidget extends StatelessWidget {
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(false),
                           child: const Text('Cancel'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Color(0xFF219EBC), // for text/icon color
+                          ),
                         ),
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(true),
                           child: const Text('Confirm'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Color(0xFF219EBC), // for text/icon color
+                          ),
                         ),
                       ],
                     ),
