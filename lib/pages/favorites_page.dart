@@ -40,10 +40,16 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
             TextButton(
               onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancel'),
+              style: TextButton.styleFrom(
+                foregroundColor: Color(0xFF219EBC),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
               child: const Text('Confirm'),
+              style: TextButton.styleFrom(
+                foregroundColor: Color(0xFF219EBC),
+              ),
             ),
           ],
         );

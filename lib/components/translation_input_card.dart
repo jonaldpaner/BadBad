@@ -78,73 +78,75 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // ✅ Use custom LanguageSelector if provided
-                widget.languageSelector ??
-                    GestureDetector(
-                      onTap: _handleToggleLanguages,
-                      child: Container(
-                        width: 250, // Fixed width for the pill
-                        height: 42,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.black :  const Color.fromRGBO(230, 234, 237, 1),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            SizedBox(
-                              width: 80, // Fixed width for source language
-                              child: AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 300),
-                                transitionBuilder: (child, animation) =>
-                                    ScaleTransition(scale: animation, child: child),
-                                child: Text(
-                                  _fromLanguage,
-                                  key: ValueKey(_fromLanguage),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white : Colors.black87,
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: widget.languageSelector ??
+                      GestureDetector(
+                        onTap: _handleToggleLanguages,
+                        child: Container(
+                          width: 250, // Keep pill size fixed
+                          height: 42,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.black : const Color.fromRGBO(230, 234, 237, 1),
+                            borderRadius: BorderRadius.circular(24),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 300),
+                                    transitionBuilder: (child, animation) =>
+                                        ScaleTransition(scale: animation, child: child),
+                                    child: Text(
+                                      _fromLanguage,
+                                      key: ValueKey(_fromLanguage),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            AnimatedRotation(
-                              turns: 0.5, // Optional: animate it dynamically if you store state
-                              duration: const Duration(milliseconds: 300),
-                              curve: Curves.easeInOut,
-                              child: Icon(Icons.swap_horiz,
-                                  size: 20, color: isDark ? Colors.white : Colors.black),
-                            ),
-                            const SizedBox(width: 10),
-                            SizedBox(
-                              width: 80, // Fixed width for target language
-                              child: AnimatedSwitcher(
+                              const SizedBox(width: 10),
+                              AnimatedRotation(
+                                turns: 0.5,
                                 duration: const Duration(milliseconds: 300),
-                                transitionBuilder: (child, animation) =>
-                                    ScaleTransition(scale: animation, child: child),
-                                child: Text(
-                                  _toLanguage,
-                                  key: ValueKey(_toLanguage),
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white : Colors.black87,
+                                curve: Curves.easeInOut,
+                                child: Icon(Icons.swap_horiz,
+                                    size: 20, color: isDark ? Colors.white : Colors.black),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.centerRight,
+                                  child: AnimatedSwitcher(
+                                    duration: const Duration(milliseconds: 300),
+                                    transitionBuilder: (child, animation) =>
+                                        ScaleTransition(scale: animation, child: child),
+                                    child: Text(
+                                      _toLanguage,
+                                      key: ValueKey(_toLanguage),
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: isDark ? Colors.white : Colors.black87,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-
-
+                ),
                 const SizedBox(height: 4),
-
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxHeight: 150),
                   child: TextFormField(

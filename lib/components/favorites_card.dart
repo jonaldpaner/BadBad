@@ -84,7 +84,6 @@ class FavoritesCardWidget extends StatelessWidget {
                 Container(
                   height: 40,
                   decoration: BoxDecoration(
-                    color: iconBgColor.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: IconButton(
