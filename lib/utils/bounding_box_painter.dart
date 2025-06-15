@@ -3,15 +3,15 @@ import 'dart:ui';
 import '../models/text_box.dart';
 
 class BoundingBoxPainter extends CustomPainter {
-  final List<TextBox> boxes; // Kept in constructor for now, but not used for painting general boxes
+  final List<TextBox> boxes;
   final Size originalSize;
   final Size previewSize;
   final List<TextBox> selectedWords;
   final BoxFit fit;
-  final Rect? selectionRect; // This parameter is no longer used for painting the red box
+  final Rect? selectionRect;
 
   BoundingBoxPainter(
-      this.boxes, // This parameter is still accepted but its data is not used for general boxes
+      this.boxes,
       this.originalSize,
       this.previewSize, {
         this.selectedWords = const [],
@@ -109,18 +109,6 @@ class BoundingBoxPainter extends CustomPainter {
       ..color = Colors.blue.withOpacity(0.4) // Semi-transparent blue
       ..style = PaintingStyle.fill; // Fill the shape
 
-    // The paints for the overall selection rectangle (red box) are removed as requested.
-    // final Paint selectionRectFillPaint = Paint()
-    //   ..color = Colors.red.withOpacity(0.3) // Semi-transparent red fill
-    //   ..style = PaintingStyle.fill;
-
-    // final Paint selectionRectBorderPaint = Paint()
-    //   ..color = Colors.red // Red border
-    //   ..style = PaintingStyle.stroke // Stroke (outline)
-    //   ..strokeWidth = 2.0; // 2 pixels thick
-
-    // Draw individual selected word bounding boxes.
-    // These are typically highlighted to show what's currently selected.
     for (final word in selectedWords) {
       if (word.cornerPoints.length == 4) {
         // Draw polygon for words if corner points are available
@@ -138,11 +126,6 @@ class BoundingBoxPainter extends CustomPainter {
       }
     }
 
-    // The drawing of the overall active drag selection area (the red box) is removed.
-    // if (selectionRect != null) {
-    //   canvas.drawRect(selectionRect!, selectionRectFillPaint);
-    //   canvas.drawRect(selectionRect!, selectionRectBorderPaint);
-    // }
   }
 
   @override
