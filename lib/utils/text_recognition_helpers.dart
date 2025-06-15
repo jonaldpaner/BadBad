@@ -38,7 +38,7 @@ Offset toOriginalImageCoordinates(
   //    the `originalImageSize` coordinate system, where the 'b.cornerPoints' are.
 
   final double hRatio = previewSize.width / originalImageSize.width;
-  final double vRatio = previewSize.height / originalImageSize.height; // FIXED: Changed previewImageSize to previewSize
+  final double vRatio = previewSize.height / originalImageSize.height;
 
   double coverScale;
   double offsetX = 0.0;
