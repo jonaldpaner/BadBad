@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ahhhtest/components/history_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:ahhhtest/pages/translation_page.dart'; // Import TranslationPage
+import 'package:ahhhtest/pages/translation_page.dart';
 
 class HistoryPageWidget extends StatefulWidget {
   const HistoryPageWidget({Key? key}) : super(key: key);
@@ -50,7 +50,6 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
                 foregroundColor: Color(0xFF219EBC),
               ),
             ),
-
           ],
         );
       },
@@ -71,7 +70,10 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
         await batch.commit();
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('All history cleared!')),
+          const SnackBar(
+            content: Text('All history cleared!'),
+            duration: Duration(milliseconds: 800),
+          ),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -123,6 +125,37 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
     ];
   }
 
+  AppBar buildAppBar(ThemeData theme) {
+    return AppBar(
+      backgroundColor: theme.appBarTheme.backgroundColor,
+      elevation: theme.appBarTheme.elevation ?? 0,
+      scrolledUnderElevation: 0,
+      surfaceTintColor: theme.scaffoldBackgroundColor,
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: theme.iconTheme.color,
+          size: 25,
+        ),
+        onPressed: () => Navigator.of(context).pop(),
+        tooltip: 'Back',
+      ),
+      title: Text(
+        'Recent History',
+        style: theme.appBarTheme.titleTextStyle,
+      ),
+      centerTitle: true,
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.more_vert, size: 25),
+          color: theme.iconTheme.color,
+          onPressed: _clearAllHistory,
+          tooltip: 'Clear all history',
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -130,27 +163,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
 
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(
-          backgroundColor: theme.scaffoldBackgroundColor,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: theme.iconTheme.color,
-              size: 25,
-            ),
-            onPressed: () => Navigator.of(context).pop(),
-            tooltip: 'Back',
-          ),
-          title: Text(
-            'Recent History',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: theme.textTheme.bodyLarge?.color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          centerTitle: true,
-          elevation: 0,
-        ),
+        appBar: buildAppBar(theme),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -189,35 +202,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Scaffold(
-            appBar: AppBar(
-              backgroundColor: theme.scaffoldBackgroundColor,
-              leading: IconButton(
-                icon: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: theme.iconTheme.color,
-                  size: 25,
-                ),
-                onPressed: () => Navigator.of(context).pop(),
-                tooltip: 'Back',
-              ),
-              title: Text(
-                'Recent History',
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: theme.textTheme.bodyLarge?.color,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              centerTitle: true,
-              elevation: 0,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.more_vert, size: 25),
-                  color: theme.iconTheme.color,
-                  onPressed: _clearAllHistory,
-                  tooltip: 'Clear all history',
-                ),
-              ],
-            ),
+            appBar: buildAppBar(theme),
             body: Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -271,8 +256,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
               message: data['originalText'] ?? 'N/A',
               documentId: doc.id,
               onDelete: () => _deleteHistoryItem(doc.id),
-              onTap: () { // ADDED: onTap to navigate to TranslationPage
-                print('Attempting to navigate to TranslationPage for document: ${doc.id}');
+              onTap: () {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -292,36 +276,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
         return Scaffold(
           key: scaffoldKey,
           backgroundColor: theme.scaffoldBackgroundColor,
-          appBar: AppBar(
-            backgroundColor: theme.scaffoldBackgroundColor,
-            automaticallyImplyLeading: false,
-            leading: IconButton(
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: theme.iconTheme.color,
-                size: 25,
-              ),
-              onPressed: () => Navigator.of(context).pop(),
-              tooltip: 'Back',
-            ),
-            title: Text(
-              'Recent History',
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: theme.textTheme.bodyLarge?.color,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            centerTitle: true,
-            elevation: 0,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.more_vert, size: 25),
-                color: theme.iconTheme.color,
-                onPressed: _clearAllHistory,
-                tooltip: 'Clear all history',
-              ),
-            ],
-          ),
+          appBar: buildAppBar(theme),
           body: SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(16),
@@ -329,45 +284,25 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (groupedHistory['Today']!.isNotEmpty) ...[
-                    Text(
-                      'Today',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text('Today', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     ...withSpacing(groupedHistory['Today']!),
                     const SizedBox(height: 24),
                   ],
                   if (groupedHistory['Yesterday']!.isNotEmpty) ...[
-                    Text(
-                      'Yesterday',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text('Yesterday', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     ...withSpacing(groupedHistory['Yesterday']!),
                     const SizedBox(height: 24),
                   ],
                   if (groupedHistory['Last Week']!.isNotEmpty) ...[
-                    Text(
-                      'Last Week',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text('Last Week', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     ...withSpacing(groupedHistory['Last Week']!),
                     const SizedBox(height: 24),
                   ],
                   if (groupedHistory['Older']!.isNotEmpty) ...[
-                    Text(
-                      'Older',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    Text('Older', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
                     const SizedBox(height: 8),
                     ...withSpacing(groupedHistory['Older']!),
                     const SizedBox(height: 24),

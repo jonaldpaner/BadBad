@@ -43,6 +43,7 @@ dependencies:
   provider: ^6.1.5
   cloud_firestore: ^5.0.0
   vector_math: ^2.1.4
+  image: ^4.5.4
 
 dev_dependencies:
   flutter_test:
