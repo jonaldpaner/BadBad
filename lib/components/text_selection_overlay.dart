@@ -250,12 +250,53 @@ class TextSelectionOverlay extends StatelessWidget {
     final double translateButtonApproxHeight = 40.0; // A safe estimate for button height
     final double verticalPadding = 15.0; // Padding between the button and the selected text
 
-    // Position the action bar strictly above the top of the selected text
-    double actionBarTop = transformedAndScaledRect.top - translateButtonApproxHeight - verticalPadding;
+    // 1. Calculate position if placed ABOVE the selected text
+    double topPositionAbove = transformedAndScaledRect.top - translateButtonApproxHeight - verticalPadding;
 
-    // Ensure it doesn't go off-screen at the very top.
-    actionBarTop = max(0.0, actionBarTop);
+    // Determine the AppBar's actual height (status bar + toolbar)
+    final double appBarAndStatusBarHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
+    // Define a threshold: if the button's top would be above this, move it below the selection
+    final double topThreshold = appBarAndStatusBarHeight + 10.0; // 10.0 for a small margin below AppBar
+
+    double actionBarTop; // The final Y position for the button
+
+    // ***** IMPORTANT CHANGE HERE *****
+    // Calculate the total visual height of the handle that extends BELOW its anchor point.
+    // The handle's base is anchored at the bottom corner of the text box.
+    // The handle's total height is _CONTAINER_HEIGHT, and its visual anchor is visualAnchorY.
+    // So, the portion extending below is _CONTAINER_HEIGHT - visualAnchorY.
+    // From _DragHandleShapePainter: visualAnchorY = _CONTAINER_HEIGHT - _CIRCLE_RADIUS
+    // So, portion below = _CONTAINER_HEIGHT - (_CONTAINER_HEIGHT - _CIRCLE_RADIUS) = _CIRCLE_RADIUS
+    final double handleOverlapHeight = _DragHandleShapePainter._CIRCLE_RADIUS; // This is the rounded part of the handle
+    final double handleClearance = handleOverlapHeight + 5.0; // Add a small buffer for visual spacing
+
+
+    if (topPositionAbove < topThreshold) {
+      // If placing it above would overlap AppBar or be too high, place it BELOW the selected text.
+      // Adjust the `transformedAndScaledRect.bottom` by the height of the handle that extends downwards
+      // to prevent overlap.
+      actionBarTop = transformedAndScaledRect.bottom + verticalPadding + handleClearance;
+
+
+      // Ensure it doesn't go off the very bottom of the screen
+      final double screenHeight = MediaQuery.of(context).size.height;
+      if (actionBarTop + translateButtonApproxHeight > screenHeight - 10.0) { // Keep 10px from bottom edge
+        actionBarTop = screenHeight - translateButtonApproxHeight - 10.0; // Clamp to bottom
+      }
+
+    } else {
+      // Otherwise, place it ABOVE the selected text.
+      actionBarTop = topPositionAbove;
+    }
+
+    // Horizontal centering relative to the combined rectangle
+    double actionBarLeft = transformedAndScaledRect.left + transformedAndScaledRect.width / 2 - 60; // 60 is half the button width (approx 120)
+
+    // Ensure it doesn't go off-screen left/right
+    actionBarLeft = max(0.0, actionBarLeft);
+    actionBarLeft = min(MediaQuery.of(context).size.width - 120, actionBarLeft); // 120 is approx button width
     // --- End of logic for Translate button positioning ---
+
 
     return Stack(
       children: [
@@ -283,39 +324,40 @@ class TextSelectionOverlay extends StatelessWidget {
           ),
         ),
 
-        // Translate Button (positioned just above the selected text)
-        // Moved to the end of the Stack's children list to ensure it's drawn on top for clickability.
-        Positioned(
-          left: transformedAndScaledRect.left + transformedAndScaledRect.width / 2 - 60, // Center horizontally
-          top: actionBarTop, // Position based on the selected text's top
-          child: Material(
-            elevation: 6,
-            borderRadius: BorderRadius.circular(20),
-            color: Colors.transparent, // Ensure transparent background
-            child: GestureDetector(
-              onTap: () {
-                final text = selectedWords.map((e) => e.text).join(' ');
-                onTranslate(text);
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor, // Use theme's card color
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  "Translate",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : Colors.black,
+        // Translate Button (positioned intelligently)
+        // Only show the button when not actively dragging a handle
+        if (currentDraggingHandleScreenPosition == null)
+          Positioned(
+            left: actionBarLeft,
+            top: actionBarTop,
+            child: Material(
+              elevation: 6,
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.transparent, // Ensure transparent background
+              child: GestureDetector(
+                onTap: () {
+                  final text = selectedWords.map((e) => e.text).join(' ');
+                  onTranslate(text);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor, // Use theme's card color
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    "Translate",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white
+                          : Colors.black,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
       ],
     );
   }
