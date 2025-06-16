@@ -82,7 +82,7 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('All favorites cleared!'),
-            duration: Duration(milliseconds: 500),
+            duration: Duration(milliseconds: 800),
           ),
         );
       } catch (e) {
@@ -136,24 +136,27 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
       return Scaffold(
         appBar: AppBar(
           backgroundColor: theme.appBarTheme.backgroundColor,
+          elevation: theme.appBarTheme.elevation ?? 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: theme.scaffoldBackgroundColor,
           automaticallyImplyLeading: false,
           leading: IconButton(
-            icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.iconTheme.color, size: 25),
+            icon: Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: theme.iconTheme.color,
+              size: 25,
+            ),
             onPressed: () => Navigator.of(context).pop(),
             tooltip: 'Back',
           ),
           title: Text(
             'Favorites',
-            style: theme.textTheme.titleLarge?.copyWith(
-              color: theme.textTheme.bodyLarge?.color,
-              fontWeight: FontWeight.w600,
-            ),
+            style: theme.appBarTheme.titleTextStyle,
           ),
           centerTitle: true,
-          elevation: 0,
           actions: [
             IconButton(
-              icon: Icon(Icons.more_vert, size: 25),
+              icon: const Icon(Icons.more_vert, size: 25),
               color: theme.iconTheme.color,
               onPressed: _clearAllFavorites,
               tooltip: 'Clear all favorites',
@@ -206,25 +209,29 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
         if (documents.isEmpty) {
           return Scaffold(
             appBar: AppBar(
-              backgroundColor: theme.appBarTheme.backgroundColor, // Use theme
+              backgroundColor: theme.appBarTheme.backgroundColor,
+              elevation: theme.appBarTheme.elevation ?? 0,
+              scrolledUnderElevation: 0,
+              surfaceTintColor: theme.scaffoldBackgroundColor,
+              automaticallyImplyLeading: false,
               leading: IconButton(
-                icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.iconTheme.color, size: 25), // Use theme
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  color: theme.iconTheme.color,
+                  size: 25,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
                 tooltip: 'Back',
               ),
               title: Text(
                 'Favorites',
-                style: theme.textTheme.titleLarge?.copyWith( // Use theme
-                  color: theme.textTheme.bodyLarge?.color, // Use theme
-                  fontWeight: FontWeight.w600,
-                ),
+                style: theme.appBarTheme.titleTextStyle,
               ),
               centerTitle: true,
-              elevation: 0,
               actions: [
                 IconButton(
-                  icon: Icon(Icons.more_vert, size: 25), // Use theme
-                  color: theme.iconTheme.color, // Use theme
+                  icon: const Icon(Icons.more_vert, size: 25),
+                  color: theme.iconTheme.color,
                   onPressed: _clearAllFavorites,
                   tooltip: 'Clear all favorites',
                 ),
@@ -250,26 +257,29 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
           key: scaffoldKey,
           backgroundColor: theme.scaffoldBackgroundColor,
           appBar: AppBar(
-            backgroundColor: theme.appBarTheme.backgroundColor, // Use theme
+            backgroundColor: theme.appBarTheme.backgroundColor,
+            elevation: theme.appBarTheme.elevation ?? 0,
+            scrolledUnderElevation: 0,
+            surfaceTintColor: theme.scaffoldBackgroundColor,
             automaticallyImplyLeading: false,
             leading: IconButton(
-              icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.iconTheme.color, size: 25), // Use theme
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: theme.iconTheme.color,
+                size: 25,
+              ),
               onPressed: () => Navigator.of(context).pop(),
               tooltip: 'Back',
             ),
             title: Text(
               'Favorites',
-              style: theme.textTheme.titleLarge?.copyWith( // Use theme
-                color: theme.textTheme.bodyLarge?.color, // Use theme
-                fontWeight: FontWeight.w600,
-              ),
+              style: theme.appBarTheme.titleTextStyle,
             ),
             centerTitle: true,
-            elevation: 0,
             actions: [
               IconButton(
-                icon: Icon(Icons.more_vert, size: 25), // Use theme
-                color: theme.iconTheme.color, // Use theme
+                icon: const Icon(Icons.more_vert, size: 25),
+                color: theme.iconTheme.color,
                 onPressed: _clearAllFavorites,
                 tooltip: 'Clear all favorites',
               ),

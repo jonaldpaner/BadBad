@@ -162,8 +162,9 @@ class _TranslationPageState extends State<TranslationPage> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: theme.appBarTheme.backgroundColor,
-        elevation: theme.appBarTheme.elevation ?? 0,
+        backgroundColor: theme.scaffoldBackgroundColor, // Match scaffold background
+        surfaceTintColor: Colors.transparent, // Prevent Material 3 overlay
+        elevation: 0, // Flat look
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.iconTheme.color, size: 25),
           onPressed: () => Navigator.of(context).pop(),

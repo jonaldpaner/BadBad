@@ -6,7 +6,6 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:image_picker/image_picker.dart';
 import 'dart:math';
 import '../components/camera_display_area.dart';
-import '../components/camera_preview_placeholder.dart';
 import '../components/language_selector.dart';
 import 'translation_page.dart';
 import '../services/camera_service.dart';
@@ -32,11 +31,11 @@ class _CameraPageState extends State<CameraPage> {
   String _toLanguage = 'Ata Manobo';
   double _currentZoom = 1, _minZoom = 1, _maxZoom = 1, _baseZoom = 1;
   File? _capturedImageFile;
-  Size _originalImageSize = Size(1280, 720);
+  Size _originalImageSize = const Size(1280, 720); // Default placeholder size
   bool _hasCapturedImage = false; // Controls Image.file vs CameraPreview
   bool _isFromGallery = false;
-  TransformationController _transformationController =
-      TransformationController();
+  final TransformationController _transformationController =
+  TransformationController();
 
   Size? _previewSize;
   BuildContext? _customPaintContext;
@@ -48,7 +47,7 @@ class _CameraPageState extends State<CameraPage> {
   TextBox? _leftHandleWord;
   TextBox? _rightHandleWord;
 
-  static const double _verticalLineTolerance = 25.0;
+  static const double _verticalLineTolerance = 25.0; // Still a fixed pixel value for this page's usage
 
   @override
   void initState() {
@@ -130,6 +129,7 @@ class _CameraPageState extends State<CameraPage> {
       List<TextBox> detectedBoxes = [];
       for (var block in recog.blocks) {
         for (var line in block.lines) {
+          // Add the whole line as a TextBox
           detectedBoxes.add(
             TextBox(
               line.boundingBox,
@@ -137,11 +137,12 @@ class _CameraPageState extends State<CameraPage> {
               line.cornerPoints
                   .map((p) => Offset(p.x.toDouble(), p.y.toDouble()))
                   .toList(),
-              isWord: false,
+              isWord: false, // Mark as a line
             ),
           );
           for (var e in line.elements) {
-            if (RegExp(r'\w').hasMatch(e.text)) {
+            // Add individual words (elements) as TextBox
+            if (RegExp(r'\w').hasMatch(e.text)) { // Basic word validation
               detectedBoxes.add(
                 TextBox(
                   e.boundingBox,
@@ -149,7 +150,7 @@ class _CameraPageState extends State<CameraPage> {
                   e.cornerPoints
                       .map((p) => Offset(p.x.toDouble(), p.y.toDouble()))
                       .toList(),
-                  isWord: true,
+                  isWord: true, // Mark as a word
                 ),
               );
             }
@@ -164,7 +165,7 @@ class _CameraPageState extends State<CameraPage> {
         _hasCapturedImage = true;
         _isLoading = false;
         _isFromGallery = true;
-        // _isCameraInitialized remains false as we are displaying the image
+        _transformationController.value = Matrix4.identity(); // Reset zoom/pan for new image
       });
     } else {
       // User cancelled gallery pick. Re-initialize camera.
@@ -188,7 +189,6 @@ class _CameraPageState extends State<CameraPage> {
       _isCameraInitialized = false; // Ensure CameraPreview is gone
     });
     // Do NOT dispose camera here yet, it's needed for capture!
-    // The dispose happens AFTER capture, in the try block
 
     try {
       final recog = await _cameraService.captureAndGetRecognizedText();
@@ -210,6 +210,7 @@ class _CameraPageState extends State<CameraPage> {
         List<TextBox> detectedBoxes = [];
         for (var block in recog.blocks) {
           for (var line in block.lines) {
+            // Add the whole line as a TextBox
             detectedBoxes.add(
               TextBox(
                 line.boundingBox,
@@ -217,11 +218,12 @@ class _CameraPageState extends State<CameraPage> {
                 line.cornerPoints
                     .map((p) => Offset(p.x.toDouble(), p.y.toDouble()))
                     .toList(),
-                isWord: false,
+                isWord: false, // Mark as a line
               ),
             );
             for (var e in line.elements) {
-              if (RegExp(r'\w').hasMatch(e.text)) {
+              // Add individual words (elements) as TextBox
+              if (RegExp(r'\w').hasMatch(e.text)) { // Basic word validation
                 detectedBoxes.add(
                   TextBox(
                     e.boundingBox,
@@ -229,7 +231,7 @@ class _CameraPageState extends State<CameraPage> {
                     e.cornerPoints
                         .map((p) => Offset(p.x.toDouble(), p.y.toDouble()))
                         .toList(),
-                    isWord: true,
+                    isWord: true, // Mark as a word
                   ),
                 );
               }
@@ -244,7 +246,7 @@ class _CameraPageState extends State<CameraPage> {
           _hasCapturedImage = true;
           _isLoading = false;
           _isFromGallery = false;
-          // _isCameraInitialized remains false as we are displaying the image
+          _transformationController.value = Matrix4.identity(); // Reset zoom/pan for new image
         });
       }
     } catch (e) {
@@ -258,7 +260,6 @@ class _CameraPageState extends State<CameraPage> {
       });
       await _initCamera(); // Re-initialize camera on capture error
     }
-    // No finally block needed here for isLoading, it's covered by setState in try/catch
   }
 
   void _resetSelectionState({bool shouldReinitializeCamera = true}) {
@@ -267,7 +268,7 @@ class _CameraPageState extends State<CameraPage> {
     _capturedImageFile = null;
     _hasCapturedImage = false;
     _isFromGallery = false;
-    _transformationController.value = Matrix4.identity();
+    _transformationController.value = Matrix4.identity(); // Always reset transformation
     _fixedAnchorWord = null;
     _isDraggingLeftHandleCurrent = false;
     _currentDraggingHandleScreenPosition = null;
@@ -287,6 +288,7 @@ class _CameraPageState extends State<CameraPage> {
   void _onTapUp(Offset pos, Size previewSize) {
     if (!_hasCapturedImage) return;
 
+    // Reset current selection state before finding new tap
     setState(() {
       _selectedWords.clear();
       _fixedAnchorWord = null;
@@ -297,23 +299,23 @@ class _CameraPageState extends State<CameraPage> {
     });
 
     final Offset tapInOriginalImageCoords =
-        TextRecognitionHelpers.toOriginalImageCoordinates(
-          pos,
-          previewSize,
-          _originalImageSize,
-          _transformationController,
-          BoxFit.cover,
-        );
+    TextRecognitionHelpers.toOriginalImageCoordinates(
+      localPos: pos,
+      previewSize: previewSize,
+      originalImageSize: _originalImageSize,
+      transformationController: _transformationController,
+      fit: BoxFit.cover, // Assumes BoxFit.cover is used for the image display
+    );
 
     TextBox? tappedWord;
     for (final b in _textBoxes) {
-      if (b.isWord) {
+      if (b.isWord) { // Only consider words for selection
         if (TextRecognitionHelpers.isPointInPolygon(
           b.cornerPoints,
           tapInOriginalImageCoords,
         )) {
           tappedWord = b;
-          break;
+          break; // Found the first word under the tap, stop searching
         }
       }
     }
@@ -323,11 +325,8 @@ class _CameraPageState extends State<CameraPage> {
         _selectedWords = [tappedWord];
         _leftHandleWord = tappedWord;
         _rightHandleWord = tappedWord;
-      } else {
-        _selectedWords.clear();
-        _leftHandleWord = null;
-        _rightHandleWord = null;
       }
+      // If tappedWord is null, _selectedWords remains empty (already cleared)
     });
   }
 
@@ -336,11 +335,12 @@ class _CameraPageState extends State<CameraPage> {
     if (!_hasCapturedImage ||
         _previewSize == null ||
         _fixedAnchorWord == null ||
-        _customPaintContext == null)
+        _customPaintContext == null) {
       return;
+    }
 
     final RenderBox renderBox =
-        _customPaintContext!.findRenderObject() as RenderBox;
+    _customPaintContext!.findRenderObject() as RenderBox;
     final Offset localPos = renderBox.globalToLocal(details.globalPosition);
 
     setState(() {
@@ -348,18 +348,21 @@ class _CameraPageState extends State<CameraPage> {
     });
 
     final Offset currentDragPointInOriginalCoords =
-        TextRecognitionHelpers.toOriginalImageCoordinates(
-          localPos,
-          _previewSize!,
-          _originalImageSize,
-          _transformationController,
-          BoxFit.cover,
-        );
+    TextRecognitionHelpers.toOriginalImageCoordinates(
+      localPos: localPos,
+      previewSize: _previewSize!,
+      originalImageSize: _originalImageSize,
+      transformationController: _transformationController,
+      fit: BoxFit.cover,
+    );
 
+    // Filter and sort only words, as lines are not meant for individual selection
     final allWordsSorted = _textBoxes.where((b) => b.isWord).toList()
       ..sort((a, b) {
-        int yCompare = a.rect.top.compareTo(b.rect.top);
-        return yCompare != 0 ? yCompare : a.rect.left.compareTo(b.rect.left);
+        // Sort primarily by vertical center, then horizontal left
+        int yCompare = a.rect.center.dy.compareTo(b.rect.center.dy);
+        if (yCompare != 0) return yCompare;
+        return a.rect.left.compareTo(b.rect.left);
       });
 
     int fixedAnchorWordIndex = allWordsSorted.indexOf(_fixedAnchorWord!);
@@ -372,12 +375,11 @@ class _CameraPageState extends State<CameraPage> {
     double minDistanceToPoint = double.infinity;
 
     for (final word in allWordsSorted) {
-      final double wordVerticalCenter = word.rect.center.dy;
-      final double anchorVerticalCenter = _fixedAnchorWord!.rect.center.dy;
-
-      if ((wordVerticalCenter - anchorVerticalCenter).abs() <
-              _verticalLineTolerance ||
-          (wordVerticalCenter - currentDragPointInOriginalCoords.dy).abs() <
+      // Check vertical proximity relative to the fixed anchor's line or the drag point's vertical position
+      // Using `top` for consistency with initial line threshold, though `center.dy` is often better for general line grouping
+      final double fixedAnchorTop = _fixedAnchorWord!.rect.top;
+      if ((word.rect.top - fixedAnchorTop).abs() < _verticalLineTolerance ||
+          (word.rect.top - currentDragPointInOriginalCoords.dy).abs() <
               _verticalLineTolerance) {
         final Offset wordCenter = word.rect.center;
         final double distance =
@@ -390,15 +392,17 @@ class _CameraPageState extends State<CameraPage> {
       }
     }
 
+    // If no new target word is found nearby, maintain current selection or default to anchor
     if (newTargetWord == null) {
-      if (_selectedWords.length > 1) {
+      if (_selectedWords.length > 1) { // If multiple words were selected, reduce to just anchor
         setState(() {
           _selectedWords = [_fixedAnchorWord!];
+          _leftHandleWord = _fixedAnchorWord;
+          _rightHandleWord = _fixedAnchorWord;
         });
       }
       return;
     }
-
     int targetWordIndex = allWordsSorted.indexOf(newTargetWord);
     if (targetWordIndex == -1) {
       print(
@@ -406,7 +410,7 @@ class _CameraPageState extends State<CameraPage> {
       );
       return;
     }
-
+    // Determine the new range of words to select
     int newStartIndex = min(fixedAnchorWordIndex, targetWordIndex);
     int newEndIndex = max(fixedAnchorWordIndex, targetWordIndex);
 
@@ -414,14 +418,13 @@ class _CameraPageState extends State<CameraPage> {
       newStartIndex,
       newEndIndex + 1,
     );
-
+    // Update state only if the selection has actually changed
     if (!TextRecognitionHelpers.listEquals(_selectedWords, newSelection)) {
       setState(() {
         _selectedWords = newSelection;
       });
     }
   }
-
   /// Navigates to the translation page with the selected text.
   void _gotoTranslate(String txt) {
     Navigator.push(
@@ -435,8 +438,6 @@ class _CameraPageState extends State<CameraPage> {
       ),
     );
   }
-
-  // In lib/pages/camera_page.dart (inside _CameraPageState class)
 
   @override
   Widget build(BuildContext context) {
@@ -457,17 +458,17 @@ class _CameraPageState extends State<CameraPage> {
         scaledFixedAnchorRect,
       );
     }
-
     // Calculate the overall selection rectangle for BoundingBoxPainter
     Rect? currentSelectionRect;
     if (_selectedWords.isNotEmpty && _previewSize != null) {
+      // Start with the first word's scaled rectangle
       Rect combinedRect = BoundingBoxPainter.scaleRectForFit(
         _selectedWords.first.rect,
         _originalImageSize,
         _previewSize!,
         BoxFit.cover,
       );
-
+      // Expand to include all other selected words
       for (int i = 1; i < _selectedWords.length; i++) {
         final scaledWordRect = BoundingBoxPainter.scaleRectForFit(
           _selectedWords[i].rect,
@@ -477,12 +478,12 @@ class _CameraPageState extends State<CameraPage> {
         );
         combinedRect = combinedRect.expandToInclude(scaledWordRect);
       }
+      // Apply InteractiveViewer's transformation to the combined rectangle
       currentSelectionRect = MatrixUtils.transformRect(
         _transformationController.value,
         combinedRect,
       );
     }
-
     return Scaffold(
       extendBodyBehindAppBar: true,
       backgroundColor: Theme.of(context).colorScheme.background,
@@ -530,17 +531,14 @@ class _CameraPageState extends State<CameraPage> {
                 bottom: Radius.circular(30),
               ),
               child: SizedBox(
-                height:
-                    size.height *
-                    0.84, // Defines the fixed height of the camera/image display area
+                height: size.height * 0.84,
                 width: double.infinity,
                 child: Stack(
                   children: [
                     if (_isLoading)
                       Positioned.fill(
                         child: Container(
-                          color: Colors
-                              .black, // Solid black background to hide content
+                          color: Colors.black, // Solid black background to hide content
                           child: const Center(
                             child: CircularProgressIndicator(
                               valueColor: AlwaysStoppedAnimation<Color>(
@@ -551,156 +549,153 @@ class _CameraPageState extends State<CameraPage> {
                         ),
                       )
                     else // Not loading, show the main camera/image UI
-                    ...[
-                      // Use a spread operator to add multiple widgets to the Stack children list
-                      // Positioned.fill ensures CameraDisplayArea fills its parent SizedBox
-                      Positioned.fill(
-                        child: CameraDisplayArea(
-                          isCameraInitialized: _isCameraInitialized,
-                          capturedImageFile: _capturedImageFile,
-                          cameraController: _cameraService.controller,
-                          transformationController: _transformationController,
-                          textBoxes: _textBoxes,
-                          originalImageSize: _originalImageSize,
-                          selectedWords: _selectedWords,
-                          currentSelectionRect: currentSelectionRect,
-                          onCameraScaleStart: (details) => _baseZoom =
-                              _currentZoom, // Correctly accepts ScaleStartDetails
-                          onCameraScaleUpdate: (scale) async {
-                            var z = (_baseZoom * scale).clamp(
-                              _minZoom,
-                              _maxZoom,
-                            );
-                            if (z != _currentZoom) {
-                              _currentZoom = z;
-                              await _cameraService.setZoomLevel(z);
-                            }
-                          },
-                          onTapUp: _onTapUp,
-                          onPreviewSizeAndContextChanged: (size, context) {
-                            setState(() {
-                              _previewSize = size;
-                              _customPaintContext = context;
-                            });
+                      ...[
+                        // Positioned.fill ensures CameraDisplayArea fills its parent SizedBox
+                        Positioned.fill(
+                          child: CameraDisplayArea(
+                            isCameraInitialized: _isCameraInitialized,
+                            capturedImageFile: _capturedImageFile,
+                            cameraController: _cameraService.controller,
+                            transformationController: _transformationController,
+                            textBoxes: _textBoxes,
+                            originalImageSize: _originalImageSize,
+                            selectedWords: _selectedWords,
+                            currentSelectionRect: currentSelectionRect,
+                            onCameraScaleStart: (details) => _baseZoom = _currentZoom,
+                            onCameraScaleUpdate: (scale) async {
+                              var z = (_baseZoom * scale).clamp(
+                                _minZoom,
+                                _maxZoom,
+                              );
+                              if (z != _currentZoom) {
+                                _currentZoom = z;
+                                await _cameraService.setZoomLevel(z);
+                              }
+                            },
+                            onTapUp: _onTapUp,
+                            onPreviewSizeAndContextChanged: (size, context) {
+                              setState(() {
+                                _previewSize = size;
+                                _customPaintContext = context;
+                              });
+                            },
+                          ),
+                        ),
+                        // CameraControlBar positioned over the camera/image display
+                        CameraControlBar(
+                          hasCapturedImage: _hasCapturedImage,
+                          isFromGallery: _isFromGallery,
+                          isFlashOn: _cameraService.isFlashOn,
+                          onPickImage: _pickImageFromGallery,
+                          onCapture: _captureAndRecognizeText,
+                          onToggleFlash: () async {
+                            await _cameraService.toggleFlash();
+                            setState(() {});
                           },
                         ),
-                      ),
-                      // CameraControlBar positioned over the camera/image display
-                      CameraControlBar(
-                        hasCapturedImage: _hasCapturedImage,
-                        isFromGallery: _isFromGallery,
-                        isFlashOn: _cameraService.isFlashOn,
-                        onPickImage: _pickImageFromGallery,
-                        onCapture: _captureAndRecognizeText,
-                        onToggleFlash: () async {
-                          await _cameraService.toggleFlash();
-                          setState(() {});
-                        },
-                      ),
-                      // TextSelectionOverlay positioned over the camera/image display for interaction
-                      TextSelectionOverlay(
-                        selectedWords: _selectedWords,
-                        capturedImageFile: _capturedImageFile,
-                        previewSize: _previewSize,
-                        originalImageSize: _originalImageSize,
-                        transformationController: _transformationController,
-                        fixedAnchorWord: _fixedAnchorWord,
-                        isDraggingLeftHandleCurrent:
-                            _isDraggingLeftHandleCurrent,
-                        transformedFixedAnchorRect: transformedFixedAnchorRect,
-                        currentDraggingHandleScreenPosition:
-                            _currentDraggingHandleScreenPosition,
-                        leftHandleWord: _leftHandleWord,
-                        rightHandleWord: _rightHandleWord,
-                        onHandlePanStartLeft: (details) {
-                          if (_selectedWords.isNotEmpty) {
+                        // TextSelectionOverlay positioned over the camera/image display for interaction
+                        TextSelectionOverlay(
+                          selectedWords: _selectedWords,
+                          capturedImageFile: _capturedImageFile,
+                          previewSize: _previewSize,
+                          originalImageSize: _originalImageSize,
+                          transformationController: _transformationController,
+                          fixedAnchorWord: _fixedAnchorWord,
+                          isDraggingLeftHandleCurrent:
+                          _isDraggingLeftHandleCurrent,
+                          transformedFixedAnchorRect:
+                          transformedFixedAnchorRect,
+                          currentDraggingHandleScreenPosition:
+                          _currentDraggingHandleScreenPosition,
+                          leftHandleWord: _leftHandleWord,
+                          rightHandleWord: _rightHandleWord,
+                          onHandlePanStartLeft: (details) {
+                            if (_selectedWords.isNotEmpty) {
+                              setState(() {
+                                // Sort visually from left to right to define the selection bounds
+                                final sorted = List.from(_selectedWords)
+                                  ..sort(
+                                        (a, b) => a.boundingBox.left.compareTo(
+                                      b.boundingBox.left,
+                                    ),
+                                  );
+                                // The rightmost word becomes the fixed anchor for a left handle drag
+                                _fixedAnchorWord = sorted.last;
+                                _isDraggingLeftHandleCurrent = true;
+
+                                // Get the screen position of the drag start for visual feedback
+                                final RenderBox renderBox =
+                                _customPaintContext!.findRenderObject()
+                                as RenderBox;
+                                _currentDraggingHandleScreenPosition = renderBox
+                                    .globalToLocal(details.globalPosition);
+                              });
+                            }
+                          },
+                          onHandlePanStartRight: (details) {
+                            if (_selectedWords.isNotEmpty) {
+                              setState(() {
+                                // Sort visually from left to right to define the selection bounds
+                                final sorted = List.from(_selectedWords)
+                                  ..sort(
+                                        (a, b) => a.boundingBox.left.compareTo(
+                                      b.boundingBox.left,
+                                    ),
+                                  );
+
+                                // The leftmost word becomes the fixed anchor for a right handle drag
+                                _fixedAnchorWord = sorted.first;
+                                _isDraggingLeftHandleCurrent = false;
+
+                                // Get the screen position of the drag start for visual feedback
+                                final RenderBox renderBox =
+                                _customPaintContext!.findRenderObject()
+                                as RenderBox;
+                                _currentDraggingHandleScreenPosition = renderBox
+                                    .globalToLocal(details.globalPosition);
+                              });
+                            }
+                          },
+                          onHandlePanUpdate: _updateSelectionBasedOnHandleDrag,
+                          onHandlePanEnd: (details) {
                             setState(() {
-                              // Sort visually from left to right to define the selection bounds
-                              final sorted = List.from(_selectedWords)
-                                ..sort(
-                                  (a, b) => a.boundingBox.left.compareTo(
-                                    b.boundingBox.left,
-                                  ),
-                                );
+                              if (_selectedWords.isEmpty) {
+                                // If no words are selected after drag ends, reset all handle states
+                                _fixedAnchorWord = null;
+                                _isDraggingLeftHandleCurrent = false;
+                                _currentDraggingHandleScreenPosition = null;
+                                _leftHandleWord = null;
+                                _rightHandleWord = null;
+                                return;
+                              }
+                              // Re-sort the final selected words to ensure handle positions are correct
+                              // (leftmost for left handle, rightmost for right handle)
+                              final sorted = List<TextBox>.from(_selectedWords)
+                                ..sort((a, b) {
+                                  // First, sort by vertical position (top of the bounding box)
+                                  int yCompare = a.rect.top.compareTo(b.rect.top);
+                                  if (yCompare != 0) {
+                                    return yCompare;
+                                  }
+                                  // If vertical positions are similar, sort by horizontal position (left of the bounding box)
+                                  return a.rect.left.compareTo(b.rect.left);
+                                });
 
-                              // The rightmost word becomes the fixed anchor for a left handle drag
-                              _fixedAnchorWord = sorted.last;
-                              _isDraggingLeftHandleCurrent = true;
+                              // Set the explicit handle words based on the final sorted selection
+                              _leftHandleWord = sorted.first;
+                              _rightHandleWord = sorted.last;
 
-                              // Get the screen position of the drag start for visual feedback
-                              final RenderBox renderBox =
-                                  _customPaintContext!.findRenderObject()
-                                      as RenderBox;
-                              _currentDraggingHandleScreenPosition = renderBox
-                                  .globalToLocal(details.globalPosition);
-                            });
-                          }
-                        },
-                        onHandlePanStartRight: (details) {
-                          if (_selectedWords.isNotEmpty) {
-                            setState(() {
-                              // Sort visually from left to right to define the selection bounds
-                              final sorted = List.from(_selectedWords)
-                                ..sort(
-                                  (a, b) => a.boundingBox.left.compareTo(
-                                    b.boundingBox.left,
-                                  ),
-                                );
-
-                              // The leftmost word becomes the fixed anchor for a right handle drag
-                              _fixedAnchorWord = sorted.first;
-                              _isDraggingLeftHandleCurrent = false;
-
-                              // Get the screen position of the drag start for visual feedback
-                              final RenderBox renderBox =
-                                  _customPaintContext!.findRenderObject()
-                                      as RenderBox;
-                              _currentDraggingHandleScreenPosition = renderBox
-                                  .globalToLocal(details.globalPosition);
-                            });
-                          }
-                        },
-                        onHandlePanUpdate: _updateSelectionBasedOnHandleDrag,
-                        onHandlePanEnd: (details) {
-                          setState(() {
-                            if (_selectedWords.isEmpty) {
-                              // If no words are selected after drag ends, reset all handle states
+                              // Reset drag state variables after drag gesture is complete
                               _fixedAnchorWord = null;
                               _isDraggingLeftHandleCurrent = false;
                               _currentDraggingHandleScreenPosition = null;
-                              _leftHandleWord = null;
-                              _rightHandleWord = null;
-                              return;
-                            }
-
-                            // Re-sort the final selected words to ensure handle positions are correct
-                            // (leftmost for left handle, rightmost for right handle)
-                            final sorted = List<TextBox>.from(_selectedWords)
-                              ..sort((a, b) {
-                                // First, sort by vertical position (top of the bounding box)
-                                int yCompare = a.rect.top.compareTo(b.rect.top);
-                                if (yCompare != 0) {
-                                  return yCompare;
-                                }
-                                // If vertical positions are similar, sort by horizontal position (left of the bounding box)
-                                return a.rect.left.compareTo(b.rect.left);
-                              });
-
-                            // Set the explicit handle words based on the final sorted selection
-                            _leftHandleWord = sorted.first;
-                            _rightHandleWord = sorted.last;
-
-                            // Reset drag state variables after drag gesture is complete
-                            _fixedAnchorWord = null;
-                            _isDraggingLeftHandleCurrent = false;
-                            _currentDraggingHandleScreenPosition = null;
-                          });
-                        },
-                        onTranslate: (text) {
-                          _gotoTranslate(text);
-                        },
-                      ),
-                    ],
+                            });
+                          },
+                          onTranslate: (text) {
+                            _gotoTranslate(text);
+                          },
+                        ),
+                      ],
                   ],
                 ),
               ),
