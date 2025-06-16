@@ -165,7 +165,7 @@ class InstructionDialog extends StatelessWidget {
         TextButton(
           child: Text(
             'Got It!',
-            style: TextStyle(color: theme.colorScheme.primary),
+            style: TextStyle(color: Color(0xFF219EBC)),
           ),
           onPressed: () {
             Navigator.of(context).pop();
