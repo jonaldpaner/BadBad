@@ -6,7 +6,7 @@
     <uses-feature android:name="android.hardware.camera" android:required="true"/>
 
     <application
-        android:label="ahhhtest"
+        android:label="BadBad"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
