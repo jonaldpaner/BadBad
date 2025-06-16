@@ -3,9 +3,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:ahhhtest/components/home_drawer.dart';
 import 'package:ahhhtest/components/login_signup_dialog.dart';
-import 'package:ahhhtest/components/translation_input_card.dart';
 import 'package:ahhhtest/pages/camera_page.dart';
 import 'package:ahhhtest/pages/translation_page.dart';
+import 'package:ahhhtest/components/instruction_dialog.dart';
+
+import '../components/translation_input_card.dart'; // <--- NEW IMPORT
 
 class HomePage extends StatefulWidget {
   final User? currentUser;
@@ -24,18 +26,12 @@ class _HomePageState extends State<HomePage> {
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
-  // This getter determines if a user is logged in at all (anonymous or permanent)
   bool get isLoggedIn => widget.currentUser != null;
-
-  // New getter: determines if the login/signup prompt should be shown.
-  // This is true if there's no user OR the current user is anonymous.
   bool get _shouldShowLoginPrompt => widget.currentUser == null || widget.currentUser!.isAnonymous;
 
   @override
   void initState() {
     super.initState();
-
-    // Set status bar overlay style to match light background (dark icons)
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -43,7 +39,6 @@ class _HomePageState extends State<HomePage> {
         statusBarBrightness: Brightness.light,
       ),
     );
-
     if (widget.currentUser != null) {
       print('HomePage: Initial user found: ${widget.currentUser!.uid}');
     } else {
@@ -80,9 +75,18 @@ class _HomePageState extends State<HomePage> {
       builder: (context) => LoginSignUpDialog(
         onLogin: () {
           print('HomePage: User logged in via dialog.');
-          // No need to dismiss here, StreamBuilder in main.dart handles rebuild
         },
       ),
+    );
+  }
+
+  // UPDATED: Method to show the instruction dialog, now using the external component
+  void _showInstructionsDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return const InstructionDialog(); // <--- Use the new component directly
+      },
     );
   }
 
@@ -106,7 +110,7 @@ class _HomePageState extends State<HomePage> {
             );
           } finally {
             if (scaffoldKey.currentState?.isDrawerOpen == true) {
-              Navigator.of(context).pop(); // Close the drawer
+              Navigator.of(context).pop();
             }
           }
         },
@@ -115,7 +119,6 @@ class _HomePageState extends State<HomePage> {
       extendBodyBehindAppBar: true,
       body: Stack(
         children: [
-          // Gradient background
           if (!isDarkMode)
             Positioned.fill(
               child: Container(
@@ -133,15 +136,13 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
-
-          // Top bar (no SafeArea so it can paint behind status bar)
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: Padding(
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 8, // Dynamic top padding
+                top: MediaQuery.of(context).padding.top + 8,
                 left: 8,
                 right: 8,
               ),
@@ -158,21 +159,30 @@ class _HomePageState extends State<HomePage> {
                       scaffoldKey.currentState?.openDrawer();
                     },
                   ),
-                  // MODIFIED: This button is now enabled if no user OR if user is anonymous
-                  IconButton(
-                    icon: Icon(
-                      Icons.person_outline,
-                      color: theme.iconTheme.color,
-                      size: 25,
-                    ),
-                    onPressed: _shouldShowLoginPrompt ? showLoginDialog : null,
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: Icon(
+                          Icons.help_outline,
+                          color: theme.iconTheme.color,
+                          size: 25,
+                        ),
+                        onPressed: _showInstructionsDialog,
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          Icons.person_outline,
+                          color: theme.iconTheme.color,
+                          size: 25,
+                        ),
+                        onPressed: _shouldShowLoginPrompt ? showLoginDialog : null,
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
           ),
-
-          // Bottom input
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
