@@ -35,8 +35,12 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                file("proguard-rules.pro")
+            )
             signingConfig = signingConfigs.getByName("debug")
         }
     }
@@ -44,4 +48,9 @@ android {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // ML Kit Latin-based text recognition (English, etc.)
+    implementation("com.google.mlkit:text-recognition:16.0.0")
 }

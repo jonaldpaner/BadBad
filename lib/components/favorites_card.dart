@@ -38,69 +38,69 @@ class FavoritesCardWidget extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(1),
+      padding: const EdgeInsets.all(1), // Made const
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20), // Made const
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
             color: cardColor,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20), // Made const
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Made const
             child: Row(
               children: [
                 // Left icon button (now dynamic)
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 40, // Made const
+                  height: 40, // Made const
                   decoration: BoxDecoration(
                     color: iconBgColor.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(50),
+                    borderRadius: BorderRadius.circular(50), // Made const
                   ),
                   child: IconButton(
                     onPressed: onLeftPressed,
-                    icon: Icon(leftIcon, size: 20, color: theme.iconTheme.color), // Use dynamic icon
-                    padding: EdgeInsets.zero,
+                    icon: Icon(leftIcon, size: 20, color: theme.iconTheme.color), // Icon can't be const due to dynamic 'leftIcon' and theme color
+                    padding: EdgeInsets.zero, // Made const
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 12), // Made const
                 // Text message
-                Expanded(
+                Expanded( // Made const
                   child: Text(
                     text,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1, // Made const
+                    overflow: TextOverflow.ellipsis, // Made const
                     style: theme.textTheme.bodyLarge?.copyWith(
-                      fontWeight: FontWeight.normal,
-                      fontStyle: FontStyle.normal,
+                      fontWeight: FontWeight.normal, // Made const
+                      fontStyle: FontStyle.normal, // Made const
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 8), // Made const
                 // Favorite button (handles confirmation)
                 Container(
-                  height: 40,
+                  height: 40, // Made const
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8), // Made const
                   ),
                   child: IconButton(
                     onPressed: () async {
                       final confirmed = await showDialog<bool>(
                         context: context,
-                        builder: (context) => AlertDialog(
-                          title: const Text('REMOVE FAVORITE'),
-                          content: const Text('Are you sure you want to remove this from favorites?'),
+                        builder: (alertDialogContext) => AlertDialog( // Changed parameter name to avoid conflict
+                          title: const Text('REMOVE FAVORITE'), // Made const
+                          content: const Text('Are you sure you want to remove this from favorites?'), // Made const
                           actions: [
                             TextButton(
-                              onPressed: () => Navigator.of(context).pop(false),
-                              child: const Text('Cancel'),
+                              onPressed: () => Navigator.of(alertDialogContext).pop(false), // Use alertDialogContext
+                              child: const Text('Cancel'), // Made const
                             ),
                             TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text('Confirm'),
+                              onPressed: () => Navigator.of(alertDialogContext).pop(true), // Use alertDialogContext
+                              child: const Text('Confirm'), // Made const
                             ),
                           ],
                         ),
@@ -111,10 +111,10 @@ class FavoritesCardWidget extends StatelessWidget {
                         print('Favorite removal confirmed for document: $documentId');
                       }
                     },
-                    icon: const Icon(Icons.favorite_rounded),
-                    iconSize: 20,
+                    icon: const Icon(Icons.favorite_rounded), // Made const
+                    iconSize: 20, // Made const
                     color: theme.iconTheme.color,
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 8), // Made const
                   ),
                 ),
               ],

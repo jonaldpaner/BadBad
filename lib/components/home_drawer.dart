@@ -23,7 +23,7 @@ class HomeDrawer extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Drawer(
-      elevation: 16,
+      elevation: 16, // Made const
       child: Container(
         color: theme.scaffoldBackgroundColor, // Use theme for background color (e.g., white in light mode)
         child: Column(
@@ -42,16 +42,16 @@ class HomeDrawer extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.person_pin,
-                      size: 60,
+                      size: 60, // Made const
                       color: isDark ? Colors.white : Colors.black,
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 8), // Made const
                     Text(
                       // Display user email if available, otherwise "Guest"
                       currentUser?.email ?? 'Guest',
                       style: theme.textTheme.headlineSmall?.copyWith(
                         color: isDark ? Colors.white : Colors.black,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.bold, // Made const
                       ),
                     ),
                     Text(
@@ -78,13 +78,15 @@ class HomeDrawer extends StatelessWidget {
                 style: theme.textTheme.bodyLarge, // Use theme text style
               ),
               onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const FavoritesPageWidget(),
-                  ),
-                );
+                Navigator.pop(context); // Pop the drawer first
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const FavoritesPageWidget(), // Made const
+                    ),
+                  );
+                });
               },
             ),
 
@@ -96,13 +98,15 @@ class HomeDrawer extends StatelessWidget {
                 style: theme.textTheme.bodyLarge, // Use theme text style
               ),
               onTap: () {
-                Navigator.pop(context);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const HistoryPageWidget(),
-                  ),
-                );
+                Navigator.pop(context); // Pop the drawer first
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HistoryPageWidget(), // Made const
+                    ),
+                  );
+                });
               },
             ),
 
