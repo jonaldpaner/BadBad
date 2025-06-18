@@ -8,6 +8,7 @@ import 'Theme/light_mode.dart';
 import 'Theme/dark_mode.dart';
 
 void main() async {
+  // Ensure Flutter binding is initialized before Firebase
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -15,8 +16,17 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+// MyApp is now a StatefulWidget to manage the state of the anonymous sign-in attempt
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  // Flag to ensure anonymous sign-in is only attempted once per app session if no user is found
+  bool _anonymousSignInAttempted = false;
 
   // Function to handle anonymous sign-in
   Future<User?> _signInAnonymously() async {
@@ -34,6 +44,7 @@ class MyApp extends StatelessWidget {
       }
       return null;
     } catch (e) {
+      // Catch any other generic errors during sign-in
       print("Generic error during anonymous sign-in: $e");
       return null;
     }
@@ -47,44 +58,38 @@ class MyApp extends StatelessWidget {
       theme: lightModeTheme,
       darkTheme: darkModeTheme,
       home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(), // Listen for auth changes
+        stream: FirebaseAuth.instance.authStateChanges(), // Stream of user authentication state
         builder: (context, snapshot) {
-
-          // trying to connect
+          // Show a loading indicator while waiting for the initial connection to the auth stream
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Scaffold(
               body: Center(
-                child: CircularProgressIndicator(), // Show a loading circle
+                child: CircularProgressIndicator(), // Loading circle
               ),
             );
           }
 
-          // If there's no user, attempt to sign in anonymously
-          if (!snapshot.hasData || snapshot.data == null) {
-            return FutureBuilder<User?>(
-              future: _signInAnonymously(),
-              builder: (context, anonymousSnapshot) {
-                if (anonymousSnapshot.connectionState == ConnectionState.waiting) {
-                  return const Scaffold(
-                    body: Center(
-                      child: CircularProgressIndicator(), // Show loading while signing anonymously
-                    ),
-                  );
-                }
-                // Once anonymous sign-in completes, pass that user to HomePage
-                return HomePage(
-                  currentUser: anonymousSnapshot.data, // This will be the anonymous User or null if it failed
-                );
-              },
+          // If there's no authenticated user and we haven't attempted anonymous sign-in yet
+          if (!snapshot.hasData && !_anonymousSignInAttempted) {
+            // Set the flag to true to prevent multiple attempts
+            _anonymousSignInAttempted = true;
+            // Trigger the anonymous sign-in. This will cause the authStateChanges stream to emit a new value
+            // (either the anonymous user or null if sign-in failed) which will then rebuild this StreamBuilder.
+            _signInAnonymously();
+            // Continue showing a loading indicator until the stream emits a user
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(), // Show loading while signing anonymously
+              ),
             );
           }
 
-          // If there's an authenticated user (including an already signed-in anonymous user)
           return HomePage(
-            currentUser: snapshot.data, // This will be User object or null
+            currentUser: snapshot.data, // Pass the current User object (can be null if sign-in failed)
           );
         },
       ),
+      // Disable the debug banner in the top-right corner
       debugShowCheckedModeBanner: false,
     );
   }

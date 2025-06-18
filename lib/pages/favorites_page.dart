@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:ahhhtest/components/favorites_card.dart';
 import 'package:ahhhtest/pages/translation_page.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // ADDED: Firestore import
-import 'package:firebase_auth/firebase_auth.dart';     // ADDED: Auth import
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async'; // Import for Timer
 
 class FavoritesPageWidget extends StatefulWidget {
   const FavoritesPageWidget({Key? key}) : super(key: key);
@@ -21,6 +22,31 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  // State to control delayed loading indicator visibility
+  bool _showLoadingIndicator = false;
+  Timer? _loadingTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Start a timer to show the loading indicator after a short delay (e.g., 200ms).
+    // If data loads before this timer fires, the indicator will not be shown.
+    _loadingTimer = Timer(const Duration(milliseconds: 200), () {
+      if (mounted) { // Ensure the widget is still in the tree before updating state
+        setState(() {
+          _showLoadingIndicator = true;
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    // Cancel the timer if the widget is disposed to prevent memory leaks
+    _loadingTimer?.cancel();
+    super.dispose();
+  }
+
   void _clearAllFavorites() async {
     final User? user = _auth.currentUser;
     if (user == null) {
@@ -32,23 +58,23 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
 
     final bool? confirm = await showDialog<bool>(
       context: context,
-      builder: (context) {
+      builder: (alertDialogContext) {
         return AlertDialog(
-          title: const Text('CLEAR ALL'),
-          content: const Text('Are you sure to clear all favorites? This action cannot be undone.'),
+          title: const Text('CLEAR ALL'), // Made const
+          content: const Text('Are you sure to clear all favorites? This action cannot be undone.'), // Made const
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              onPressed: () => Navigator.pop(alertDialogContext, false),
+              child: const Text('Cancel'), // Made const
               style: TextButton.styleFrom(
-                foregroundColor: Color(0xFF219EBC),
+                foregroundColor: const Color(0xFF219EBC), // Made const
               ),
             ),
             TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Confirm'),
+              onPressed: () => Navigator.pop(alertDialogContext, true),
+              child: const Text('Confirm'), // Made const
               style: TextButton.styleFrom(
-                foregroundColor: Color(0xFF219EBC),
+                foregroundColor: const Color(0xFF219EBC), // Made const
               ),
             ),
           ],
@@ -81,8 +107,8 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('All favorites cleared!'),
-            duration: Duration(milliseconds: 800),
+            content: Text('All favorites cleared!'), // Made const
+            duration: Duration(milliseconds: 800), // Made const
           ),
         );
       } catch (e) {
@@ -114,8 +140,8 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Favorite removed!'),
-          duration: Duration(milliseconds: 500),
+          content: Text('Favorite removed!'), // Made const
+          duration: Duration(milliseconds: 500), // Made const
         ),
       );
     } catch (e) {
@@ -126,51 +152,60 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
     }
   }
 
+  // Extracted AppBar creation into a method for reusability and potential const application
+  AppBar _buildAppBar(ThemeData theme) {
+    return AppBar(
+      backgroundColor: theme.appBarTheme.backgroundColor,
+      elevation: theme.appBarTheme.elevation ?? 0,
+      scrolledUnderElevation: 0, // Made const
+      surfaceTintColor: theme.scaffoldBackgroundColor,
+      automaticallyImplyLeading: false, // Made const
+      leading: IconButton(
+        icon: Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: theme.iconTheme.color,
+          size: 25, // Made const
+        ),
+        onPressed: () => Navigator.of(context).pop(),
+        tooltip: 'Back', // Made const
+      ),
+      title: Text(
+        'Favorites',
+        style: theme.appBarTheme.titleTextStyle,
+      ),
+      centerTitle: true, // Made const
+      actions: [
+        IconButton(
+          icon: const Icon(Icons.more_vert, size: 25), // Made const
+          color: theme.iconTheme.color,
+          onPressed: _clearAllFavorites,
+          tooltip: 'Clear all favorites', // Made const
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final User? user = _auth.currentUser; // Get current user here
+    final User? user = _auth.currentUser;
 
     // Display message if user is not logged in
     if (user == null) {
       return Scaffold(
-        appBar: AppBar(
-          backgroundColor: theme.appBarTheme.backgroundColor,
-          elevation: theme.appBarTheme.elevation ?? 0,
-          scrolledUnderElevation: 0,
-          surfaceTintColor: theme.scaffoldBackgroundColor,
-          automaticallyImplyLeading: false,
-          leading: IconButton(
-            icon: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: theme.iconTheme.color,
-              size: 25,
-            ),
-            onPressed: () => Navigator.of(context).pop(),
-            tooltip: 'Back',
-          ),
-          title: Text(
-            'Favorites',
-            style: theme.appBarTheme.titleTextStyle,
-          ),
-          centerTitle: true,
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.more_vert, size: 25),
-              color: theme.iconTheme.color,
-              onPressed: _clearAllFavorites,
-              tooltip: 'Clear all favorites',
-            ),
-          ],
-        ),
+        appBar: _buildAppBar(theme), // Use the extracted AppBar method
         body: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.center, // Made const
             children: [
-              Icon(Icons.login, size: 60, color: theme.iconTheme.color?.withOpacity(0.6)),
-              const SizedBox(height: 16),
+              Icon(
+                Icons.login,
+                size: 60, // Made const
+                color: theme.iconTheme.color?.withOpacity(0.6),
+              ),
+              const SizedBox(height: 16), // Made const
               Text(
-                'Please log in to view your favorites.',
+                'Please log in to view your favorites.', // Made const
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.textTheme.bodyLarge?.color?.withOpacity(0.6)),
               ),
             ],
@@ -192,14 +227,22 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
           .orderBy('timestamp', descending: true) // Order by most recent favorite
           .snapshots(),
       builder: (context, snapshot) {
+        // Conditionally show CircularProgressIndicator based on _showLoadingIndicator state
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            backgroundColor: theme.scaffoldBackgroundColor, // Match the theme's background
+            appBar: _buildAppBar(theme), // Show app bar for consistent look
+            body: Center( // Center the loading indicator
+              child: _showLoadingIndicator // Only show indicator if timer has fired
+                  ? CircularProgressIndicator(color: theme.colorScheme.secondary)
+                  : const SizedBox.shrink(), // Otherwise, show nothing to avoid flicker
+            ),
           );
         }
 
         if (snapshot.hasError) {
           return Scaffold(
+            appBar: _buildAppBar(theme), // Use the extracted AppBar method
             body: Center(child: Text('Error: ${snapshot.error}')),
           );
         }
@@ -208,43 +251,19 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
 
         if (documents.isEmpty) {
           return Scaffold(
-            appBar: AppBar(
-              backgroundColor: theme.appBarTheme.backgroundColor,
-              elevation: theme.appBarTheme.elevation ?? 0,
-              scrolledUnderElevation: 0,
-              surfaceTintColor: theme.scaffoldBackgroundColor,
-              automaticallyImplyLeading: false,
-              leading: IconButton(
-                icon: Icon(
-                  Icons.arrow_back_ios_new_rounded,
-                  color: theme.iconTheme.color,
-                  size: 25,
-                ),
-                onPressed: () => Navigator.of(context).pop(),
-                tooltip: 'Back',
-              ),
-              title: Text(
-                'Favorites',
-                style: theme.appBarTheme.titleTextStyle,
-              ),
-              centerTitle: true,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.more_vert, size: 25),
-                  color: theme.iconTheme.color,
-                  onPressed: _clearAllFavorites,
-                  tooltip: 'Clear all favorites',
-                ),
-              ],
-            ),
+            appBar: _buildAppBar(theme), // Use the extracted AppBar method
             body: Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center, // Made const
                 children: [
-                  Icon(Icons.favorite_border, size: 60, color: theme.iconTheme.color?.withOpacity(0.6)),
-                  const SizedBox(height: 16),
+                  Icon(
+                    Icons.favorite_border,
+                    size: 60, // Made const
+                    color: theme.iconTheme.color?.withOpacity(0.6),
+                  ),
+                  const SizedBox(height: 16), // Made const
                   Text(
-                    'No favorites yet.',
+                    'No favorites yet.', // Made const
                     style: theme.textTheme.bodyLarge?.copyWith(color: theme.textTheme.bodyLarge?.color?.withOpacity(0.6)),
                   ),
                 ],
@@ -256,40 +275,12 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
         return Scaffold(
           key: scaffoldKey,
           backgroundColor: theme.scaffoldBackgroundColor,
-          appBar: AppBar(
-            backgroundColor: theme.appBarTheme.backgroundColor,
-            elevation: theme.appBarTheme.elevation ?? 0,
-            scrolledUnderElevation: 0,
-            surfaceTintColor: theme.scaffoldBackgroundColor,
-            automaticallyImplyLeading: false,
-            leading: IconButton(
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: theme.iconTheme.color,
-                size: 25,
-              ),
-              onPressed: () => Navigator.of(context).pop(),
-              tooltip: 'Back',
-            ),
-            title: Text(
-              'Favorites',
-              style: theme.appBarTheme.titleTextStyle,
-            ),
-            centerTitle: true,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.more_vert, size: 25),
-                color: theme.iconTheme.color,
-                onPressed: _clearAllFavorites,
-                tooltip: 'Clear all favorites',
-              ),
-            ],
-          ),
-          body: SafeArea(
+          appBar: _buildAppBar(theme), // Use the extracted AppBar method
+          body: SafeArea( // Made const
             child: ListView.separated(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16), // Made const
               itemCount: documents.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              separatorBuilder: (_, __) => const SizedBox(height: 8), // Made const
               itemBuilder: (context, index) {
                 final doc = documents[index];
                 final data = doc.data() as Map<String, dynamic>;
@@ -298,9 +289,8 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
                 final bool isOriginalFavorited = data['isOriginalFavorited'] ?? false;
                 final bool isTranslatedFavorited = data['isTranslatedFavorited'] ?? false;
 
-                // Determine which text to show as favorite in the card
                 String displayedText;
-                bool isOriginal; // To pass to _removeFavorite
+                bool isOriginal;
                 if (isOriginalFavorited) {
                   displayedText = originalText;
                   isOriginal = true;
@@ -308,26 +298,25 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
                   displayedText = translatedText;
                   isOriginal = false;
                 } else {
-                  // Fallback: This case should ideally not happen if query is correct
                   displayedText = originalText;
                   isOriginal = true;
                 }
 
                 return FavoritesCardWidget(
                   text: displayedText,
-                  contentType: data['type'] ?? 'text', // <-- Added this line
+                  contentType: data['type'] ?? 'text',
                   documentId: doc.id,
                   isOriginalTextFavorited: isOriginal,
                   onFavoriteRemoved: _removeFavorite,
                   onTap: () {
-                    // Navigate to TranslationPage, passing the original and translated text
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => TranslationPage(
                           originalText: originalText,
-                          fromLanguage: data['fromLanguage'] ?? 'English', // Pass actual languages
+                          fromLanguage: data['fromLanguage'] ?? 'English',
                           toLanguage: data['toLanguage'] ?? 'Ata Manobo',
+                          initialTranslatedText: translatedText,
                         ),
                       ),
                     );

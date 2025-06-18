@@ -19,31 +19,32 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // GlobalKey for the Scaffold to control the Drawer
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
+  // TextEditingController for the text input field
   final TextEditingController textController = TextEditingController();
+  // FocusNode for managing the focus of the text field
   final FocusNode textFieldFocusNode = FocusNode();
 
+  // State variables for language selection
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
+  // Getters for authentication status and login prompt visibility
   bool get isLoggedIn => widget.currentUser != null;
   bool get _shouldShowLoginPrompt => widget.currentUser == null || widget.currentUser!.isAnonymous;
 
   @override
   void initState() {
     super.initState();
+    // Set system UI overlay style once when the widget is initialized
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark,
-        statusBarBrightness: Brightness.light,
+        statusBarColor: Colors.transparent, // Transparent status bar
+        statusBarIconBrightness: Brightness.dark, // Dark icons on light status bar
+        statusBarBrightness: Brightness.light, // Light status bar content (iOS)
       ),
     );
-    if (widget.currentUser != null) {
-      print('HomePage: Initial user found: ${widget.currentUser!.uid}');
-    } else {
-      print('HomePage: No initial user.');
-    }
   }
 
   @override
@@ -56,11 +57,13 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    // Dispose controllers and focus nodes to prevent memory leaks
     textController.dispose();
     textFieldFocusNode.dispose();
     super.dispose();
   }
 
+  // Toggles the selected 'from' and 'to' languages
   void toggleLanguages() {
     setState(() {
       final temp = fromLanguage;
@@ -69,23 +72,25 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  // Shows the login/signup dialog
   void showLoginDialog() {
     showDialog(
       context: context,
       builder: (context) => LoginSignUpDialog(
         onLogin: () {
+          // Callback after successful login
           print('HomePage: User logged in via dialog.');
         },
       ),
     );
   }
 
-  // UPDATED: Method to show the instruction dialog, now using the external component
+  // Method to show the instruction dialog, now using the external component
   void _showInstructionsDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return const InstructionDialog(); // <--- Use the new component directly
+        return const InstructionDialog();
       },
     );
   }
@@ -109,20 +114,22 @@ class _HomePageState extends State<HomePage> {
               SnackBar(content: Text('Logout Error: $e')),
             );
           } finally {
+            // Close the drawer after logout attempt
             if (scaffoldKey.currentState?.isDrawerOpen == true) {
               Navigator.of(context).pop();
             }
           }
         },
       ),
-      backgroundColor: theme.scaffoldBackgroundColor,
-      extendBodyBehindAppBar: true,
+      backgroundColor: theme.scaffoldBackgroundColor, // Set background color based on theme
+      extendBodyBehindAppBar: true, // Extends the body behind the app bar area
       body: Stack(
         children: [
+          // Background gradient for light mode
           if (!isDarkMode)
             Positioned.fill(
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: const BoxDecoration( // BoxDecoration can be const as colors/stops are static
                   gradient: LinearGradient(
                     begin: Alignment.bottomLeft,
                     end: Alignment.topRight,
@@ -136,6 +143,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
+          // Top row for menu, help, and profile icons
           Positioned(
             top: 0,
             left: 0,
@@ -149,6 +157,7 @@ class _HomePageState extends State<HomePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Menu icon button
                   IconButton(
                     icon: Icon(
                       Icons.menu_rounded,
@@ -156,26 +165,29 @@ class _HomePageState extends State<HomePage> {
                       size: 25,
                     ),
                     onPressed: () {
-                      scaffoldKey.currentState?.openDrawer();
+                      scaffoldKey.currentState?.openDrawer(); // Open the navigation drawer
                     },
                   ),
+                  // Row for help and person icons
                   Row(
                     children: [
+                      // Help icon button
                       IconButton(
                         icon: Icon(
                           Icons.help_outline,
                           color: theme.iconTheme.color,
                           size: 25,
                         ),
-                        onPressed: _showInstructionsDialog,
+                        onPressed: _showInstructionsDialog, // Show instructions dialog
                       ),
+                      // Person icon button (shows login dialog if not logged in)
                       IconButton(
                         icon: Icon(
                           Icons.person_outline,
                           color: theme.iconTheme.color,
                           size: 25,
                         ),
-                        onPressed: _shouldShowLoginPrompt ? showLoginDialog : null,
+                        onPressed: _shouldShowLoginPrompt ? showLoginDialog : null, // Conditional onPressed
                       ),
                     ],
                   ),
@@ -183,6 +195,7 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
+          // Translation input card at the bottom
           Align(
             alignment: Alignment.bottomCenter,
             child: Padding(
@@ -196,12 +209,12 @@ class _HomePageState extends State<HomePage> {
                 textController: textController,
                 focusNode: textFieldFocusNode,
                 onCameraPressed: () {
-                  FocusScope.of(context).unfocus();
+                  FocusScope.of(context).unfocus(); // Unfocus the text field
                   Future.delayed(const Duration(milliseconds: 300), () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const CameraPage(),
+                        builder: (context) => const CameraPage(), // CameraPage can be const
                       ),
                     );
                   });
@@ -211,12 +224,13 @@ class _HomePageState extends State<HomePage> {
                   if (inputText.isEmpty) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Please enter text to translate'),
+                        content: Text('Please enter text to translate'), // Text widget can be const
                         duration: Duration(seconds: 1),
                       ),
                     );
                     return;
                   }
+                  // Navigate to translation page with input text and languages
                   Navigator.push(
                     context,
                     MaterialPageRoute(

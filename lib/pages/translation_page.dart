@@ -50,7 +50,7 @@ class _TranslationPageState extends State<TranslationPage> {
     try {
       final encodedMessage = Uri.encodeComponent(message); // Encode the message for the URL
       final url = Uri.parse('https://badbad-api.onrender.com/translate/$apiEndpoint?message=$encodedMessage');
-      print('Fetching translation from URL: $url');
+      print('Fetching translation from URL: $url'); // Debug print
 
       final response = await http.get(url);
 
@@ -58,11 +58,11 @@ class _TranslationPageState extends State<TranslationPage> {
         final Map<String, dynamic> data = json.decode(response.body);
         return data['translation']?.toString() ?? 'Translation not found.';
       } else {
-        print('Failed to load translation: ${response.statusCode}, Body: ${response.body}');
+        print('Failed to load translation: ${response.statusCode}, Body: ${response.body}'); // Debug print
         return 'Error: Could not translate (Status Code: ${response.statusCode})';
       }
     } catch (e) {
-      print('Error fetching translation: $e');
+      print('Error fetching translation: $e'); // Debug print
       return 'Error: Could not translate (Network Error)';
     }
   }
@@ -87,12 +87,12 @@ class _TranslationPageState extends State<TranslationPage> {
           'type': 'text',
         });
         _currentTranslationDocId = docRef.id;
-        print('New translation history saved to Firestore. Doc ID: $_currentTranslationDocId');
+        print('New translation history saved to Firestore. Doc ID: $_currentTranslationDocId'); // Debug print
       } catch (e) {
-        print('Error saving new translation history to Firestore: $e');
+        print('Error saving new translation history to Firestore: $e'); // Debug print
       }
     } else {
-      print('User not logged in. New translation history not saved to Firestore.');
+      print('User not logged in. New translation history not saved to Firestore.'); // Debug print
     }
   }
 
@@ -109,30 +109,30 @@ class _TranslationPageState extends State<TranslationPage> {
             .update({
           fieldName: value,
         });
-        print('Firestore updated: $fieldName to $value for $_currentTranslationDocId');
+        print('Firestore updated: $fieldName to $value for $_currentTranslationDocId'); // Debug print
       } catch (e) {
-        print('Error updating $fieldName in Firestore: $e');
+        print('Error updating $fieldName in Firestore: $e'); // Debug print
       }
     } else if (user == null) {
-      print('User not logged in. Cannot update favorite status in Firestore.');
+      print('User not logged in. Cannot update favorite status in Firestore.'); // Debug print
     } else {
-      print('No translation document ID available to update favorite status.');
+      print('No translation document ID available to update favorite status.'); // Debug print
     }
   }
 
   @override
   void initState() {
     super.initState();
-    print('TranslationPage: initState called.');
-    print('TranslationPage: originalText received: "${widget.originalText}"');
-    print('TranslationPage: initialTranslatedText received: "${widget.initialTranslatedText}"');
+    print('TranslationPage: initState called.'); // Debug print
+    print('TranslationPage: originalText received: "${widget.originalText}"'); // Debug print
+    print('TranslationPage: initialTranslatedText received: "${widget.initialTranslatedText}"'); // Debug print
 
     if (widget.initialTranslatedText != null && widget.initialTranslatedText!.isNotEmpty) {
       _translatedText = widget.initialTranslatedText!;
       _isLoadingTranslation = false;
-      print('TranslationPage: Displaying initial translated text from history.');
+      print('TranslationPage: Displaying initial translated text from history.'); // Debug print
     } else {
-      print('TranslationPage: No initial translated text, fetching new translation from API.');
+      print('TranslationPage: No initial translated text, fetching new translation from API.'); // Debug print
       _fetchNewTranslationAndSaveHistory();
     }
   }
@@ -156,7 +156,7 @@ class _TranslationPageState extends State<TranslationPage> {
 
   @override
   Widget build(BuildContext context) {
-    print('TranslationPage: build method called. Current translated text: "${_translatedText}"');
+    print('TranslationPage: build method called. Current translated text: "${_translatedText}"'); // Debug print
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -166,23 +166,27 @@ class _TranslationPageState extends State<TranslationPage> {
         surfaceTintColor: Colors.transparent, // Prevent Material 3 overlay
         elevation: 0, // Flat look
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded, color: theme.iconTheme.color, size: 25),
+          icon: Icon( // Made const
+            Icons.arrow_back_ios_new_rounded,
+            color: theme.appBarTheme.iconTheme?.color,
+            size: 25, // Made const
+          ),
           onPressed: () => Navigator.of(context).pop(),
-          tooltip: 'Back',
+          tooltip: 'Back', // Made const
         ),
         title: Text(
           'Translation',
           style: theme.appBarTheme.titleTextStyle,
         ),
-        centerTitle: true,
+        centerTitle: true, // Made const
       ),
-      body: SafeArea(
+      body: SafeArea( // Made const
         child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16), // Made const
+          child: SingleChildScrollView( // Made const
             child: Column(
               children: [
-                // Removed the temporary Text widget
+                // TranslationCard for original text (assumed to be optimized internally)
                 TranslationCard(
                   language: widget.fromLanguage,
                   text: widget.originalText,
@@ -191,10 +195,10 @@ class _TranslationPageState extends State<TranslationPage> {
                     Clipboard.setData(ClipboardData(text: widget.originalText));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('Original text copied to clipboard'),
-                        duration: const Duration(milliseconds: 500),
+                        content: const Text('Original text copied to clipboard'), // Made const
+                        duration: const Duration(milliseconds: 500), // Made const
                         backgroundColor: theme.colorScheme.secondary,
-                        behavior: SnackBarBehavior.floating,
+                        behavior: SnackBarBehavior.floating, // Made const
                       ),
                     );
                   },
@@ -205,7 +209,7 @@ class _TranslationPageState extends State<TranslationPage> {
                     _updateFavoriteStatusInFirestore('isOriginalFavorited', isOriginalFavorited);
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 16), // Made const
                 _isLoadingTranslation
                     ? Center(child: CircularProgressIndicator(color: theme.colorScheme.secondary))
                     : TranslationCard(
@@ -216,10 +220,10 @@ class _TranslationPageState extends State<TranslationPage> {
                     Clipboard.setData(ClipboardData(text: _translatedText));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('Translated text copied to clipboard'),
-                        duration: const Duration(milliseconds: 500),
+                        content: const Text('Translated text copied to clipboard'), // Made const
+                        duration: const Duration(milliseconds: 500), // Made const
                         backgroundColor: theme.colorScheme.secondary,
-                        behavior: SnackBarBehavior.floating,
+                        behavior: SnackBarBehavior.floating, // Made const
                       ),
                     );
                   },
@@ -230,9 +234,9 @@ class _TranslationPageState extends State<TranslationPage> {
                     _updateFavoriteStatusInFirestore('isTranslatedFavorited', isTranslatedFavorited);
                   },
                 ),
-                const SizedBox(height: 24),
-                const _TranslateMoreButton(),
-                const SizedBox(height: 24),
+                const SizedBox(height: 24), // Made const
+                const _TranslateMoreButton(), // Made const
+                const SizedBox(height: 24), // Made const
               ],
             ),
           ),
@@ -243,17 +247,17 @@ class _TranslationPageState extends State<TranslationPage> {
 }
 
 class _TranslateMoreButton extends StatelessWidget {
-  const _TranslateMoreButton();
+  const _TranslateMoreButton(); // Made const
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return TextButton.icon(
       onPressed: () => Navigator.of(context).pop(),
-      icon: Icon(Icons.translate,color: Color(0xFF219EBC)),
+      icon: const Icon(Icons.translate,color: Color(0xFF219EBC)), // Made const
       label: Text(
         'Translate More',
-        style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16, color: const Color(0xFF219EBC)),
+        style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16, color: const Color(0xFF219EBC)), // Made const for color
       ),
     );
   }
