@@ -67,7 +67,10 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
         widget.onLogin();
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Logged in successfully!')),
+          const SnackBar(
+            content: Text('Logged in successfully!'),
+            duration: Duration(milliseconds: 1000),
+          ),
         );
       } else {
         await _auth.createUserWithEmailAndPassword(
