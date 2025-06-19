@@ -121,6 +121,12 @@ class HomeDrawer extends StatelessWidget {
                 ),
                 onTap: () async {
                   await onLogout();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('You have been logged out'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
                 },
               ),
           ],
