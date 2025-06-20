@@ -1,5 +1,3 @@
-// In components/camera_display_area.dart
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
@@ -48,51 +46,47 @@ class CameraDisplayArea extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (capturedImageFile != null) {
-      return InteractiveViewer(
-        transformationController: transformationController,
-        minScale: 1.0,
-        maxScale: 4.0,
-        child: Stack(
-          children: [
-            Positioned.fill( // This Positioned.fill is fine here, as it's for the Image.file within the InteractiveViewer's child stack
-              child: Image.file(
-                capturedImageFile!,
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-              ),
+      // **MODIFIED:** Removed InteractiveViewer. Now directly use a Stack for the captured image.
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: Image.file(
+              capturedImageFile!,
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
             ),
-            Positioned.fill( // This Positioned.fill is also fine for the CustomPaint
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    onPreviewSizeAndContextChanged(
-                      Size(constraints.maxWidth, constraints.maxHeight),
-                      context,
-                    );
-                  });
-                  return GestureDetector(
-                    onTapUp: (d) => onTapUp?.call(d.localPosition, Size(constraints.maxWidth, constraints.maxHeight)),
-                    child: CustomPaint(
-                      size: Size.infinite,
-                      painter: BoundingBoxPainter(
-                        textBoxes,
-                        originalImageSize,
-                        Size(constraints.maxWidth, constraints.maxHeight),
-                        selectedWords: selectedWords,
-                        fit: BoxFit.cover,
-                        selectionRect: currentSelectionRect,
-                      ),
-                    ),
+          ),
+          Positioned.fill(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  onPreviewSizeAndContextChanged(
+                    Size(constraints.maxWidth, constraints.maxHeight),
+                    context,
                   );
-                },
-              ),
+                });
+                return GestureDetector(
+                  onTapUp: (d) => onTapUp?.call(d.localPosition, Size(constraints.maxWidth, constraints.maxHeight)),
+                  child: CustomPaint(
+                    size: Size.infinite,
+                    painter: BoundingBoxPainter(
+                      textBoxes,
+                      originalImageSize,
+                      Size(constraints.maxWidth, constraints.maxHeight),
+                      selectedWords: selectedWords,
+                      fit: BoxFit.cover,
+                      selectionRect: currentSelectionRect,
+                    ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
       );
     } else {
-      // Live camera view or placeholder
-      return GestureDetector( // This GestureDetector is the direct child returned for camera
+      // Live camera view or placeholder (no changes here, zooming remains for camera)
+      return GestureDetector(
         onScaleStart: (details) => onCameraScaleStart?.call(details),
         onScaleUpdate: (s) async {
           if (onCameraScaleUpdate != null) {
