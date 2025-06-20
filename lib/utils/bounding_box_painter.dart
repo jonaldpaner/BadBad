@@ -8,7 +8,7 @@ class BoundingBoxPainter extends CustomPainter {
   final Size previewSize;
   final List<TextBox> selectedWords;
   final BoxFit fit;
-  final Rect? selectionRect;
+  final Rect? selectionRect; // This can remain, though its specific usage is for a combined highlight if desired
 
   BoundingBoxPainter(
       this.boxes,
@@ -19,7 +19,7 @@ class BoundingBoxPainter extends CustomPainter {
         this.selectionRect,
       });
 
-  // --- Scaling Helpers ---
+  // --- Scaling Helpers (No changes here) ---
 
   /// Scales a list of Offset points from original image coordinates to display coordinates.
   /// Accounts for the BoxFit property (contain or cover) to correctly map points.
@@ -104,35 +104,63 @@ class BoundingBoxPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    // Paint for individual selected words
-    final Paint selectedWordPaint = Paint()
-      ..color = Colors.blue.withOpacity(0.4) // Semi-transparent blue
-      ..style = PaintingStyle.fill; // Fill the shape
+    // Paint for the initial line bounding boxes (white, borderless)
+    final Paint lineBoxPaint = Paint()
+      ..color = Colors.white.withOpacity(0.3) // Slightly transparent white for background
+      ..style = PaintingStyle.fill; // Filled
 
-    for (final word in selectedWords) {
-      if (word.cornerPoints.length == 4) {
-        // Draw polygon for words if corner points are available
-        final scaledPoints = scalePointsForFit(word.cornerPoints, originalSize, previewSize, fit);
-        final path = Path()..moveTo(scaledPoints[0].dx, scaledPoints[0].dy);
-        for (int i = 1; i < scaledPoints.length; i++) {
-          path.lineTo(scaledPoints[i].dx, scaledPoints[i].dy);
+    // Paint for individual selected words (semi-transparent blue fill)
+    final Paint selectedWordPaint = Paint()
+      ..color = Colors.blue.withOpacity(0.4)
+      ..style = PaintingStyle.fill;
+
+    // First, draw the initial white bounding boxes for lines
+    for (final box in boxes) {
+      if (!box.isWord) { // Only draw if it's a line (isWord: false)
+        if (box.cornerPoints.length == 4) {
+          // Draw polygon for lines if corner points are available
+          final scaledPoints = scalePointsForFit(box.cornerPoints, originalSize, previewSize, fit);
+          final path = Path()..moveTo(scaledPoints[0].dx, scaledPoints[0].dy);
+          for (int i = 1; i < scaledPoints.length; i++) {
+            path.lineTo(scaledPoints[i].dx, scaledPoints[i].dy);
+          }
+          path.close();
+          canvas.drawPath(path, lineBoxPaint);
+        } else {
+          // Fallback to drawing a rectangle for lines
+          final rect = scaleRectForFit(box.rect, originalSize, previewSize, fit);
+          canvas.drawRect(rect, lineBoxPaint);
         }
-        path.close();
-        canvas.drawPath(path, selectedWordPaint);
-      } else {
-        // Fallback to drawing a rectangle for words
-        final rect = scaleRectForFit(word.rect, originalSize, previewSize, fit);
-        canvas.drawRect(rect, selectedWordPaint);
       }
     }
 
+    // Second, draw the blue highlight for selected words, on top of everything else
+    for (final word in selectedWords) {
+      // We already know these are words, but adding isWord check for robustness if structure changes
+      if (word.isWord) {
+        if (word.cornerPoints.length == 4) {
+          // Draw polygon for words if corner points are available
+          final scaledPoints = scalePointsForFit(word.cornerPoints, originalSize, previewSize, fit);
+          final path = Path()..moveTo(scaledPoints[0].dx, scaledPoints[0].dy);
+          for (int i = 1; i < scaledPoints.length; i++) {
+            path.lineTo(scaledPoints[i].dx, scaledPoints[i].dy);
+          }
+          path.close();
+          canvas.drawPath(path, selectedWordPaint);
+        } else {
+          // Fallback to drawing a rectangle for words
+          final rect = scaleRectForFit(word.rect, originalSize, previewSize, fit);
+          canvas.drawRect(rect, selectedWordPaint);
+        }
+      }
+    }
   }
 
   @override
   bool shouldRepaint(covariant BoundingBoxPainter old) {
     // Repaint only if any of the relevant properties have changed,
     // ensuring efficient redrawing.
-    return old.boxes != boxes ||
+    return old.boxes != boxes || // Now considers all boxes for line drawing
         old.originalSize != originalSize ||
         old.previewSize != previewSize ||
         old.selectedWords != selectedWords ||
