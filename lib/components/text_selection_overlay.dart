@@ -2,18 +2,23 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'dart:math';
 import 'dart:io';
-
 import '../models/text_box.dart';
 import '../utils/bounding_box_painter.dart';
 
 class _DragHandleShapePainter extends CustomPainter {
-  static const double _CIRCLE_RADIUS = 20;
-  static const double _HANDLE_BODY_HEIGHT = 50;
+  static const double _CIRCLE_RADIUS = 15;
+  static const double _HANDLE_BODY_HEIGHT = 40;
   static const double _CONTAINER_WIDTH = 40;
 
   final bool isLeftHandle;
+  final Offset containerPosition;
+  final Size imageBounds;
 
-  const _DragHandleShapePainter({required this.isLeftHandle});
+  const _DragHandleShapePainter({
+    required this.isLeftHandle,
+    required this.containerPosition,
+    required this.imageBounds,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -29,7 +34,38 @@ class _DragHandleShapePainter extends CustomPainter {
     canvas.save();
     canvas.translate(center.dx, center.dy);
 
-    final double tiltAngle = isLeftHandle ? pi / 6: -pi / 6;
+    double tiltAngle = isLeftHandle ? pi / 10 : -pi / 10;
+
+    final double handleSizedBoxLeftScreenX = containerPosition.dx;
+    final double handleSizedBoxTopScreenY = containerPosition.dy;
+    final double handleBaseCenterScreenX = handleSizedBoxLeftScreenX + size.width / 2;
+    final double handleBaseCenterScreenY = handleSizedBoxTopScreenY + size.height - _CIRCLE_RADIUS;
+
+    final double cornerToleranceX = 40.0;
+    final double cornerToleranceY = 40.0;
+
+    if (isLeftHandle) {
+      if (handleBaseCenterScreenX < cornerToleranceX) {
+        if (handleBaseCenterScreenY < cornerToleranceY) {
+          tiltAngle = -pi / 4;
+        } else if (handleBaseCenterScreenY > imageBounds.height - _CIRCLE_RADIUS - cornerToleranceY) {
+          tiltAngle = pi / 4;
+        } else {
+          tiltAngle = pi / 12;
+        }
+      }
+    } else {
+      if (handleBaseCenterScreenX > imageBounds.width - cornerToleranceX) {
+        if (handleBaseCenterScreenY < cornerToleranceY) {
+          tiltAngle = pi / 4;
+        } else if (handleBaseCenterScreenY > imageBounds.height - _CIRCLE_RADIUS - cornerToleranceY) {
+          tiltAngle = -pi / 4;
+        } else {
+          tiltAngle = -pi / 12;
+        }
+      }
+    }
+
     canvas.rotate(tiltAngle);
 
     canvas.translate(-center.dx, -center.dy);
@@ -65,7 +101,9 @@ class _DragHandleShapePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_DragHandleShapePainter oldDelegate) =>
-      oldDelegate.isLeftHandle != isLeftHandle;
+      oldDelegate.isLeftHandle != isLeftHandle ||
+          oldDelegate.containerPosition != containerPosition ||
+          oldDelegate.imageBounds != imageBounds;
 }
 
 class TextSelectionOverlay extends StatelessWidget {
@@ -106,7 +144,7 @@ class TextSelectionOverlay extends StatelessWidget {
     required this.onTranslate,
   });
 
-  Widget _dragHandle(bool isLeft) {
+  Widget _dragHandle(bool isLeft, Offset currentPosition) {
     final double desiredSizedBoxHeight =
         _DragHandleShapePainter._HANDLE_BODY_HEIGHT + _DragHandleShapePainter._CIRCLE_RADIUS;
     final double verticalPaddingAboveHandle = 10.0;
@@ -116,7 +154,11 @@ class TextSelectionOverlay extends StatelessWidget {
       width: _DragHandleShapePainter._CONTAINER_WIDTH,
       height: totalSizedBoxHeight,
       child: CustomPaint(
-        painter: _DragHandleShapePainter(isLeftHandle: isLeft),
+        painter: _DragHandleShapePainter(
+          isLeftHandle: isLeft,
+          containerPosition: currentPosition,
+          imageBounds: previewSize!,
+        ),
       ),
     );
   }
@@ -137,7 +179,7 @@ class TextSelectionOverlay extends StatelessWidget {
         _DragHandleShapePainter._HANDLE_BODY_HEIGHT + _DragHandleShapePainter._CIRCLE_RADIUS + 10.0;
 
     final double handleBaseYInSizedBox = currentSizedBoxHeight - _DragHandleShapePainter._CIRCLE_RADIUS;
-    final double verticalOffsetFromWordBottom = 42;
+    final double verticalOffsetFromWordBottom = 38;
 
     double targetScreenX;
     double targetScreenY;
@@ -146,11 +188,8 @@ class TextSelectionOverlay extends StatelessWidget {
       targetScreenX = draggingScreenPosition.dx;
       targetScreenY = draggingScreenPosition.dy;
 
-      // Center the handle on the finger during drag
       visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2;
-
     } else {
-      // When not dragging, position the handle based on the explicit handle words.
       final TextBox? targetWord = isLeftHandle ? specificLeftHandleWord : specificRightHandleWord;
 
       if (targetWord != null) {
@@ -165,30 +204,35 @@ class TextSelectionOverlay extends StatelessWidget {
         if (isLeftHandle) {
           targetScreenX = transformedWordRect.bottomLeft.dx;
           targetScreenY = transformedWordRect.bottomLeft.dy;
-          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 + 25.0;
+          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 + 12;
         } else {
           targetScreenX = transformedWordRect.bottomRight.dx;
           targetScreenY = transformedWordRect.bottomRight.dy;
-          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 - 25.0;
+          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 - 12;
         }
       } else {
-        // Fallback if no specific handle word (e.g., initial state without selection).
         if (isLeftHandle) {
           targetScreenX = overallTransformedScaledRect.bottomLeft.dx;
           targetScreenY = overallTransformedScaledRect.bottomLeft.dy;
-          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 + 25.0;
+          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 + 12;
         } else {
           targetScreenX = overallTransformedScaledRect.bottomRight.dx;
           targetScreenY = overallTransformedScaledRect.bottomRight.dy;
-          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 - 25.0;
+          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 - 12.0;
         }
       }
     }
 
-    return Offset(
-      targetScreenX - visualAnchorX,
-      targetScreenY - handleBaseYInSizedBox + verticalOffsetFromWordBottom,
-    );
+    double rawHandleSizedBoxX = targetScreenX - visualAnchorX;
+    double rawHandleSizedBoxY = targetScreenY - handleBaseYInSizedBox + verticalOffsetFromWordBottom;
+
+    final double handleSizedBoxWidth = _DragHandleShapePainter._CONTAINER_WIDTH;
+    final double handleSizedBoxHeight = currentSizedBoxHeight;
+
+    final double clampedX = rawHandleSizedBoxX.clamp(0.0, previewSize.width - handleSizedBoxWidth);
+    final double clampedY = rawHandleSizedBoxY.clamp(0.0, previewSize.height - handleSizedBoxHeight);
+
+    return Offset(clampedX, clampedY);
   }
 
   @override
@@ -274,10 +318,9 @@ class TextSelectionOverlay extends StatelessWidget {
             onPanStart: onHandlePanStartLeft,
             onPanUpdate: onHandlePanUpdate,
             onPanEnd: onHandlePanEnd,
-            child: _dragHandle(true),
+            child: _dragHandle(true, leftHandlePos),
           ),
         ),
-
         Positioned(
           left: rightHandlePos.dx,
           top: rightHandlePos.dy,
@@ -285,10 +328,9 @@ class TextSelectionOverlay extends StatelessWidget {
             onPanStart: onHandlePanStartRight,
             onPanUpdate: onHandlePanUpdate,
             onPanEnd: onHandlePanEnd,
-            child: _dragHandle(false),
+            child: _dragHandle(false, rightHandlePos),
           ),
         ),
-
         if (currentDraggingHandleScreenPosition == null)
           Positioned(
             left: actionBarLeft,
