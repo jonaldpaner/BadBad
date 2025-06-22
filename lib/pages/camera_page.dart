@@ -329,7 +329,6 @@ class _CameraPageState extends State<CameraPage> {
       // If tappedWord is null, _selectedWords remains empty (already cleared)
     });
   }
-
   /// Updates the selection based on dragging one of the handles.
   void _updateSelectionBasedOnHandleDrag(DragUpdateDetails details) {
     if (!_hasCapturedImage ||
@@ -376,7 +375,6 @@ class _CameraPageState extends State<CameraPage> {
 
     for (final word in allWordsSorted) {
       // Check vertical proximity relative to the fixed anchor's line or the drag point's vertical position
-      // Using `top` for consistency with initial line threshold, though `center.dy` is often better for general line grouping
       final double fixedAnchorTop = _fixedAnchorWord!.rect.top;
       if ((word.rect.top - fixedAnchorTop).abs() < _verticalLineTolerance ||
           (word.rect.top - currentDragPointInOriginalCoords.dy).abs() <
@@ -394,11 +392,12 @@ class _CameraPageState extends State<CameraPage> {
 
     // If no new target word is found nearby, maintain current selection or default to anchor
     if (newTargetWord == null) {
-      if (_selectedWords.length > 1) { // If multiple words were selected, reduce to just anchor
+      if (_selectedWords.length > 1) {
+        // If multiple words were selected, reduce to just anchor
         setState(() {
           _selectedWords = [_fixedAnchorWord!];
-          _leftHandleWord = _fixedAnchorWord;
-          _rightHandleWord = _fixedAnchorWord;
+          _leftHandleWord = _fixedAnchorWord; // Ensure handles stay on fixed anchor
+          _rightHandleWord = _fixedAnchorWord; // Ensure handles stay on fixed anchor
         });
       }
       return;
@@ -410,6 +409,7 @@ class _CameraPageState extends State<CameraPage> {
       );
       return;
     }
+
     // Determine the new range of words to select
     int newStartIndex = min(fixedAnchorWordIndex, targetWordIndex);
     int newEndIndex = max(fixedAnchorWordIndex, targetWordIndex);
@@ -418,14 +418,33 @@ class _CameraPageState extends State<CameraPage> {
       newStartIndex,
       newEndIndex + 1,
     );
-    // Update state only if the selection has actually changed
-    if (!TextRecognitionHelpers.listEquals(_selectedWords, newSelection)) {
+
+    // --- IMPORTANT ADDITION HERE ---
+    // Ensure _leftHandleWord and _rightHandleWord are updated based on the *current* selection
+    final sortedCurrentSelection = List<TextBox>.from(newSelection)
+      ..sort((a, b) {
+        int yCompare = a.rect.top.compareTo(b.rect.top);
+        if (yCompare != 0) return yCompare;
+        return a.rect.left.compareTo(b.rect.left);
+      });
+
+    TextBox? newLeftHandleWord = sortedCurrentSelection.first;
+    TextBox? newRightHandleWord = sortedCurrentSelection.last;
+    // --- END OF IMPORTANT ADDITION ---
+
+
+    // Update state only if the selection or handle words have actually changed
+    if (!TextRecognitionHelpers.listEquals(_selectedWords, newSelection) ||
+        _leftHandleWord != newLeftHandleWord ||
+        _rightHandleWord != newRightHandleWord) {
       setState(() {
         _selectedWords = newSelection;
+        _leftHandleWord = newLeftHandleWord; // Update the left handle word
+        _rightHandleWord = newRightHandleWord; // Update the right handle word
       });
     }
   }
-  /// Navigates to the translation page with the selected text.
+
   void _gotoTranslate(String txt) {
     Navigator.push(
       context,
