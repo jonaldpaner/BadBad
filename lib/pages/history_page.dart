@@ -130,7 +130,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('History item deleted!'), // Made const
-          duration: Duration(milliseconds: 500), // Made const
+          duration: Duration(milliseconds: 800), // Made const
         ),
       );
       print('Document $documentId deleted from Firestore.');
@@ -299,10 +299,14 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
                       fromLanguage: data['fromLanguage'] ?? 'English',
                       toLanguage: data['toLanguage'] ?? 'Ata Manobo',
                       initialTranslatedText: data['translatedText'] ?? '',
+                      initialIsOriginalFavorited: data['isOriginalFavorited'] ?? false,
+                      initialIsTranslatedFavorited: data['isTranslatedFavorited'] ?? false,
+                      documentId: doc.id, // Pass doc ID
                     ),
                   ),
                 );
               },
+
             ),
           );
         }
