@@ -37,6 +37,7 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
     });
   }
 
+  // loading time
   @override
   void dispose() {
     _loadingTimer?.cancel();
