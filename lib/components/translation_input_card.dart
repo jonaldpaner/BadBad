@@ -1,5 +1,6 @@
-import 'dart:ui'; // Required for ImageFilter
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'language_selector.dart'; // Make sure this import points to your actual LanguageSelector file.
 
 class TranslationInputCard extends StatefulWidget {
   final String fromLanguage;
@@ -38,18 +39,6 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
     _toLanguage = widget.toLanguage;
   }
 
-  // No need for _handleToggleLanguages here if it's just calling widget.onToggleLanguages
-  // You can directly call widget.onToggleLanguages in the GestureDetector onTap
-  // But keeping it here is also fine if you plan to add more internal logic.
-  void _handleToggleLanguages() {
-    setState(() {
-      final temp = _fromLanguage;
-      _fromLanguage = _toLanguage;
-      _toLanguage = temp;
-    });
-    widget.onToggleLanguages(); // Calls the HomePage's toggleLanguages
-  }
-
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -78,62 +67,14 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
               Align(
                 alignment: Alignment.centerLeft,
                 child: widget.languageSelector ??
-                    GestureDetector(
-                      onTap: _handleToggleLanguages,
-                      child: Container(
-                        width: 250,
-                        height: 42,
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: isDark ? Colors.black : const Color.fromRGBO(230, 234, 237, 1),
-                          borderRadius: const BorderRadius.all(Radius.circular(24)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 300),
-                                  transitionBuilder: _scaleTransitionBuilder,
-                                  child: Text(
-                                    _fromLanguage,
-                                    key: ValueKey('from_lang_${_fromLanguage}'),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white : Colors.black87,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Icon(Icons.swap_horiz,
-                                size: 20, color: isDark ? Colors.white : Colors.black),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Align(
-                                alignment: Alignment.centerRight,
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 300),
-                                  transitionBuilder: _scaleTransitionBuilder,
-                                  child: Text(
-                                    _toLanguage,
-                                    key: ValueKey('to_lang_${_toLanguage}'),
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white : Colors.black87,
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    LanguageSelector(
+                      onLanguageChanged: (source, target) {
+                        setState(() {
+                          _fromLanguage = source;
+                          _toLanguage = target;
+                        });
+                        widget.onToggleLanguages();
+                      },
                     ),
               ),
               const SizedBox(height: 4),
@@ -144,10 +85,11 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
                   focusNode: widget.focusNode,
                   autofocus: false,
                   maxLines: null,
-                  maxLength: 300,
+                  maxLength: 80,
                   keyboardType: TextInputType.multiline,
                   scrollPhysics: const BouncingScrollPhysics(),
                   cursorColor: isDark ? Colors.white : Colors.black,
+
                   decoration: InputDecoration(
                     counterText: '',
                     hintText: 'Type or paste text here',
@@ -163,12 +105,9 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
                       borderSide: BorderSide.none,
                     ),
                   ),
-                  style:
-                  TextStyle(color: isDark ? Colors.white : Colors.black),
+                  style: TextStyle(color: isDark ? Colors.white : Colors.black),
                   buildCounter: (context,
-                      {required currentLength,
-                        maxLength,
-                        required isFocused}) {
+                      {required currentLength, required maxLength, required isFocused}) {
                     return Text(
                       '$currentLength / $maxLength',
                       style: TextStyle(
@@ -183,22 +122,29 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
                   },
                 ),
               ),
-
               const SizedBox(height: 12),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  CircleAvatar(
-                    backgroundColor: isDark
-                        ? Colors.grey[850]
-                        : const Color(0xA3CCD6DA),
-                    child: IconButton(
-                      icon: Icon(Icons.camera_alt_outlined,
-                          color: isDark ? Colors.white : Colors.black),
-                      onPressed: widget.onCameraPressed,
+                  Material(
+                    color: isDark ? Colors.grey[850] : const Color(0xA3CCD6DA), // Same as CircleAvatar
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      splashColor: (isDark ? Colors.white : Colors.black).withOpacity(0.1), // Subtle splash
+                      highlightColor: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
+                      onTap: widget.onCameraPressed,
+                      child: Padding(
+                        padding: const EdgeInsets.all(10), // Adjust as needed
+                        child: Icon(
+                          Icons.camera_alt_outlined,
+                          size: 24,
+                          color: isDark ? Colors.white : Colors.black,
+                        ),
+                      ),
                     ),
                   ),
+
                   ElevatedButton.icon(
                     onPressed: widget.onTranslatePressed,
                     icon: const Icon(
@@ -223,9 +169,5 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
         ),
       ),
     );
-  }
-
-  static Widget _scaleTransitionBuilder(Widget child, Animation<double> animation) {
-    return ScaleTransition(scale: animation, child: child);
   }
 }

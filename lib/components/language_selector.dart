@@ -13,14 +13,12 @@ class LanguageSelector extends StatefulWidget {
 class _LanguageSelectorState extends State<LanguageSelector> {
   String sourceLanguage = 'English';
   String targetLanguage = 'Ata Manobo';
-  double _rotationTurns = 0.0;
 
   void _swapLanguages() {
     setState(() {
       final temp = sourceLanguage;
       sourceLanguage = targetLanguage;
       targetLanguage = temp;
-      _rotationTurns += 0.5;
     });
 
     widget.onLanguageChanged?.call(sourceLanguage, targetLanguage);
@@ -61,14 +59,9 @@ class _LanguageSelectorState extends State<LanguageSelector> {
             ),
           ),
           const SizedBox(width: 12),
-          AnimatedRotation(
-            turns: _rotationTurns,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeInOut,
-            child: GestureDetector(
-              onTap: _swapLanguages,
-              child: Icon(Icons.swap_horiz, size: 22, color: theme.iconTheme.color),
-            ),
+          GestureDetector(
+            onTap: _swapLanguages,
+            child: Icon(Icons.swap_horiz, size: 22, color: theme.iconTheme.color),
           ),
           const SizedBox(width: 12),
           Flexible(
@@ -84,4 +77,5 @@ class _LanguageSelectorState extends State<LanguageSelector> {
       ),
     );
   }
+
 }
