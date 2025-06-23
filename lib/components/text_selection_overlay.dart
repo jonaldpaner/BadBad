@@ -108,10 +108,10 @@ class _DragHandleShapePainter extends CustomPainter {
 
 class TextSelectionOverlay extends StatelessWidget {
   final List<TextBox> selectedWords;
-  final File? capturedImageFile;
+  final File? capturedImageFile; // Used to determine if it's a captured image
   final Size? previewSize;
   final Size originalImageSize;
-  final TransformationController transformationController;
+  final TransformationController transformationController; // Still needed for live camera zoom
   final TextBox? fixedAnchorWord;
   final bool isDraggingLeftHandleCurrent;
   final Rect? transformedFixedAnchorRect;
@@ -165,13 +165,14 @@ class TextSelectionOverlay extends StatelessWidget {
 
   Offset _calculateHandlePosition({
     required bool isLeftHandle,
-    required Rect overallTransformedScaledRect,
+    required List<TextBox> allSelectedWords, // New parameter to get words
     required Offset? draggingScreenPosition,
     required TextBox? specificLeftHandleWord,
     required TextBox? specificRightHandleWord,
     required Size originalImageSize,
     required Size previewSize,
     required TransformationController transformationController,
+    required bool isCapturedImage,
   }) {
     double visualAnchorX;
 
@@ -192,34 +193,64 @@ class TextSelectionOverlay extends StatelessWidget {
     } else {
       final TextBox? targetWord = isLeftHandle ? specificLeftHandleWord : specificRightHandleWord;
 
-      if (targetWord != null) {
-        final scaledWordRect = BoundingBoxPainter.scaleRectForFit(
-          targetWord.rect,
-          originalImageSize,
-          previewSize,
-          BoxFit.cover,
-        );
-        final transformedWordRect = MatrixUtils.transformRect(transformationController.value, scaledWordRect);
+      // Determine the point in original image coordinates to anchor the handle to
+      Offset originalAnchorPoint;
 
+      if (targetWord != null) {
+        // Anchor to the specific word's bottom-left/right point
         if (isLeftHandle) {
-          targetScreenX = transformedWordRect.bottomLeft.dx;
-          targetScreenY = transformedWordRect.bottomLeft.dy;
-          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 + 12;
+          originalAnchorPoint = targetWord.rect.bottomLeft;
         } else {
-          targetScreenX = transformedWordRect.bottomRight.dx;
-          targetScreenY = transformedWordRect.bottomRight.dy;
-          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 - 12;
+          originalAnchorPoint = targetWord.rect.bottomRight;
         }
       } else {
+        // Fallback: Anchor to the overall selection's bottom-left/right point
+        // This calculates the combined rect if a specific word isn't available (e.g., empty selection initially)
+        final combinedRect = allSelectedWords.fold<Rect?>(
+          null,
+              (rect, word) => rect == null ? word.rect : rect.expandToInclude(word.rect),
+        )!; // ! is safe because this only runs if selectedWords is not empty
+
         if (isLeftHandle) {
-          targetScreenX = overallTransformedScaledRect.bottomLeft.dx;
-          targetScreenY = overallTransformedScaledRect.bottomLeft.dy;
-          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 + 12;
+          originalAnchorPoint = combinedRect.bottomLeft;
         } else {
-          targetScreenX = overallTransformedScaledRect.bottomRight.dx;
-          targetScreenY = overallTransformedScaledRect.bottomRight.dy;
-          visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 - 12.0;
+          originalAnchorPoint = combinedRect.bottomRight;
         }
+      }
+
+      if (isCapturedImage) {
+        // Manually apply BoxFit.cover transformation for captured images
+        final FittedSizes fittedSizes = applyBoxFit(BoxFit.cover, originalImageSize, previewSize);
+        final double scale = fittedSizes.destination.width / fittedSizes.source.width;
+        final double offsetX = (previewSize.width - originalImageSize.width * scale) / 2;
+        final double offsetY = (previewSize.height - originalImageSize.height * scale) / 2;
+
+        targetScreenX = originalAnchorPoint.dx * scale + offsetX;
+        targetScreenY = originalAnchorPoint.dy * scale + offsetY;
+
+      } else {
+        // For live camera or other cases, use the transformationController
+        // First scale the point based on BoxFit.cover to the preview area
+        final FittedSizes fittedSizes = applyBoxFit(BoxFit.cover, originalImageSize, previewSize);
+        final double scale = fittedSizes.destination.width / fittedSizes.source.width;
+        final double offsetX = (previewSize.width - originalImageSize.width * scale) / 2;
+        final double offsetY = (previewSize.height - originalImageSize.height * scale) / 2;
+
+        final Offset scaledPointPreTransform = Offset(
+          originalAnchorPoint.dx * scale + offsetX,
+          originalAnchorPoint.dy * scale + offsetY,
+        );
+
+        // Then apply the InteractiveViewer's transformation matrix
+        final transformedPoint = MatrixUtils.transformPoint(transformationController.value, scaledPointPreTransform);
+        targetScreenX = transformedPoint.dx;
+        targetScreenY = transformedPoint.dy;
+      }
+
+      if (isLeftHandle) {
+        visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 + 12;
+      } else {
+        visualAnchorX = _DragHandleShapePainter._CONTAINER_WIDTH / 2 - 12;
       }
     }
 
@@ -237,53 +268,73 @@ class TextSelectionOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (selectedWords.isEmpty || capturedImageFile == null || previewSize == null) {
+    if (selectedWords.isEmpty || previewSize == null) {
       return const SizedBox.shrink();
     }
 
-    final combinedRect = selectedWords.fold<Rect?>(
+    // Calculate the overall combined rect in original image coordinates
+    final Rect combinedRectOriginal = selectedWords.fold<Rect?>(
       null,
           (rect, word) => rect == null ? word.rect : rect.expandToInclude(word.rect),
     )!;
 
-    final scaledRect = BoundingBoxPainter.scaleRectForFit(
-      combinedRect,
-      originalImageSize,
-      previewSize!,
-      BoxFit.cover,
-    );
+    Rect transformedAndScaledRectForActionBar; // This will be the rect on screen for the action bar
 
-    final matrix = transformationController.value;
-    final transformedAndScaledRect = Rect.fromPoints(
-      MatrixUtils.transformPoint(matrix, scaledRect.topLeft),
-      MatrixUtils.transformPoint(matrix, scaledRect.bottomRight),
-    );
+    // Determine how to scale/transform the combined rect based on image source
+    if (capturedImageFile != null) {
+      // For captured images, manually apply BoxFit.cover scaling to get screen rect
+      final FittedSizes fittedSizes = applyBoxFit(BoxFit.cover, originalImageSize, previewSize!);
+      final double scale = fittedSizes.destination.width / fittedSizes.source.width;
+      final double offsetX = (previewSize!.width - originalImageSize.width * scale) / 2;
+      final double offsetY = (previewSize!.height - originalImageSize.height * scale) / 2;
+
+      // Apply the scaling and offset to the combinedRectOriginal
+      transformedAndScaledRectForActionBar = Rect.fromPoints(
+        Offset(combinedRectOriginal.topLeft.dx * scale + offsetX, combinedRectOriginal.topLeft.dy * scale + offsetY),
+        Offset(combinedRectOriginal.bottomRight.dx * scale + offsetX, combinedRectOriginal.bottomRight.dy * scale + offsetY),
+      );
+
+    } else {
+      // For live camera, use the transformationController
+      // First scale the combined rect from original to preview size using BoxFit.cover logic
+      final scaledRectPreTransform = BoundingBoxPainter.scaleRectForFit(
+        combinedRectOriginal,
+        originalImageSize,
+        previewSize!,
+        BoxFit.cover,
+      );
+      // Then apply the InteractiveViewer's transformation matrix
+      transformedAndScaledRectForActionBar = MatrixUtils.transformRect(transformationController.value, scaledRectPreTransform);
+    }
 
     final leftHandlePos = _calculateHandlePosition(
       isLeftHandle: true,
-      overallTransformedScaledRect: transformedAndScaledRect,
+      allSelectedWords: selectedWords, // Pass all selected words
       draggingScreenPosition: isDraggingLeftHandleCurrent ? currentDraggingHandleScreenPosition : null,
       specificLeftHandleWord: leftHandleWord,
       specificRightHandleWord: rightHandleWord,
       originalImageSize: originalImageSize,
       previewSize: previewSize!,
       transformationController: transformationController,
+      isCapturedImage: capturedImageFile != null,
     );
     final rightHandlePos = _calculateHandlePosition(
       isLeftHandle: false,
-      overallTransformedScaledRect: transformedAndScaledRect,
+      allSelectedWords: selectedWords, // Pass all selected words
       draggingScreenPosition: !isDraggingLeftHandleCurrent ? currentDraggingHandleScreenPosition : null,
       specificLeftHandleWord: leftHandleWord,
       specificRightHandleWord: rightHandleWord,
       originalImageSize: originalImageSize,
       previewSize: previewSize!,
       transformationController: transformationController,
+      isCapturedImage: capturedImageFile != null,
     );
 
     final double translateButtonApproxHeight = 40.0;
     final double verticalPadding = 15.0;
 
-    double topPositionAbove = transformedAndScaledRect.top - translateButtonApproxHeight - verticalPadding;
+    // Use the correctly calculated rect for the action bar positioning
+    double topPositionAbove = transformedAndScaledRectForActionBar.top - translateButtonApproxHeight - verticalPadding;
 
     final double appBarAndStatusBarHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
     final double topThreshold = appBarAndStatusBarHeight + 10.0;
@@ -294,7 +345,7 @@ class TextSelectionOverlay extends StatelessWidget {
     final double handleClearance = handleOverlapHeight + 5.0;
 
     if (topPositionAbove < topThreshold) {
-      actionBarTop = transformedAndScaledRect.bottom + verticalPadding + handleClearance;
+      actionBarTop = transformedAndScaledRectForActionBar.bottom + verticalPadding + handleClearance;
 
       final double screenHeight = MediaQuery.of(context).size.height;
       if (actionBarTop + translateButtonApproxHeight > screenHeight - 10.0) {
@@ -304,7 +355,7 @@ class TextSelectionOverlay extends StatelessWidget {
       actionBarTop = topPositionAbove;
     }
 
-    double actionBarLeft = transformedAndScaledRect.left + transformedAndScaledRect.width / 2 - 60;
+    double actionBarLeft = transformedAndScaledRectForActionBar.left + transformedAndScaledRectForActionBar.width / 2 - 60;
 
     actionBarLeft = max(0.0, actionBarLeft);
     actionBarLeft = min(MediaQuery.of(context).size.width - 120, actionBarLeft);

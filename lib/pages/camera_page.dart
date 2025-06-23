@@ -107,11 +107,14 @@ class _CameraPageState extends State<CameraPage> {
       final file = File(pickedFile.path);
       final bytes = await file.readAsBytes();
       final decodedImage = await decodeImageFromList(bytes);
+      print('--- DEBUG: Raw Decoded Image Data ---');
+      print('decodedImage.width: ${decodedImage.width}');
+      print('decodedImage.height: ${decodedImage.height}');
       final origSize = Size(
         decodedImage.width.toDouble(),
         decodedImage.height.toDouble(),
       );
-
+      print('Calculated origSize: $origSize');
       final InputImage inputImage = InputImage.fromFile(file);
       final TextRecognizer recognizer = TextRecognizer(
         script: TextRecognitionScript.latin,
@@ -158,6 +161,7 @@ class _CameraPageState extends State<CameraPage> {
         _isFromGallery = true;
         _transformationController.value =
             Matrix4.identity();
+        print('Original Image Size (set for capture AFTER setState): $_originalImageSize');
       });
     } else {
       setState(() {
@@ -188,11 +192,14 @@ class _CameraPageState extends State<CameraPage> {
         final file = File(imagePath);
         final bytes = await file.readAsBytes();
         final decodedImage = await decodeImageFromList(bytes);
-
+        print('--- DEBUG: Raw Decoded Image Data ---');
+        print('decodedImage.width: ${decodedImage.width}');
+        print('decodedImage.height: ${decodedImage.height}');
         final origSize = Size(
           decodedImage.width.toDouble(),
           decodedImage.height.toDouble(),
         );
+        print('Calculated origSize: $origSize'); // Print origSize before assignment
 
         List<TextBox> detectedBoxes = [];
         for (var block in recog.blocks) {
@@ -233,6 +240,7 @@ class _CameraPageState extends State<CameraPage> {
           _isFromGallery = false;
           _transformationController.value =
               Matrix4.identity();
+          print('Original Image Size (set for capture AFTER setState): $_originalImageSize');
         });
       }
     } catch (e) {
@@ -548,6 +556,7 @@ class _CameraPageState extends State<CameraPage> {
                       ...[
                         Positioned.fill(
                           child: CameraDisplayArea(
+
                             isCameraInitialized: _isCameraInitialized,
                             capturedImageFile: _capturedImageFile,
                             cameraController: _cameraService.controller,
@@ -565,9 +574,11 @@ class _CameraPageState extends State<CameraPage> {
                               );
                               if (z != _currentZoom) {
                                 _currentZoom = z;
+
                                 await _cameraService.setZoomLevel(z);
                               }
                             },
+
                             onTapUp: _onTapUp,
                             onPreviewSizeAndContextChanged: (size, context) {
                               setState(() {

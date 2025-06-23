@@ -44,9 +44,9 @@ class CameraDisplayArea extends StatelessWidget {
   });
 
   @override
+  @override
   Widget build(BuildContext context) {
     if (capturedImageFile != null) {
-      // **MODIFIED:** Removed InteractiveViewer. Now directly use a Stack for the captured image.
       return Stack(
         children: [
           Positioned.fill(
@@ -65,14 +65,16 @@ class CameraDisplayArea extends StatelessWidget {
                     context,
                   );
                 });
+                final previewSize = Size(constraints.maxWidth, constraints.maxHeight); // Get previewSize here
+
                 return GestureDetector(
-                  onTapUp: (d) => onTapUp?.call(d.localPosition, Size(constraints.maxWidth, constraints.maxHeight)),
+                  onTapUp: (d) => onTapUp?.call(d.localPosition, previewSize), // Pass previewSize
                   child: CustomPaint(
                     size: Size.infinite,
                     painter: BoundingBoxPainter(
                       textBoxes,
                       originalImageSize,
-                      Size(constraints.maxWidth, constraints.maxHeight),
+                      previewSize, // Pass the calculated previewSize
                       selectedWords: selectedWords,
                       fit: BoxFit.cover,
                       selectionRect: currentSelectionRect,
@@ -85,7 +87,7 @@ class CameraDisplayArea extends StatelessWidget {
         ],
       );
     } else {
-      // Live camera view or placeholder (no changes here, zooming remains for camera)
+      // Live camera view: remains the same with GestureDetector for zoom
       return GestureDetector(
         onScaleStart: (details) => onCameraScaleStart?.call(details),
         onScaleUpdate: (s) async {
@@ -98,5 +100,4 @@ class CameraDisplayArea extends StatelessWidget {
             : const CameraPreviewPlaceholder(),
       );
     }
-  }
-}
+  }}
