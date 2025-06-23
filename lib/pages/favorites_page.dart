@@ -1,6 +1,7 @@
+// pages/favorites_page.dart
 import 'package:flutter/material.dart';
-import 'package:ahhhtest/components/favorites_card.dart';
-import 'package:ahhhtest/pages/translation_page.dart';
+import 'package:ahhhtest/components/favorites_card.dart'; // Ensure this import is correct
+import 'package:ahhhtest/pages/translation_page.dart'; // Ensure this import is correct
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async'; // Import for Timer
@@ -18,21 +19,17 @@ class FavoritesPageWidget extends StatefulWidget {
 class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Initialize Firestore and FirebaseAuth instances
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // State to control delayed loading indicator visibility
   bool _showLoadingIndicator = false;
   Timer? _loadingTimer;
 
   @override
   void initState() {
     super.initState();
-    // Start a timer to show the loading indicator after a short delay (e.g., 200ms).
-    // If data loads before this timer fires, the indicator will not be shown.
     _loadingTimer = Timer(const Duration(milliseconds: 200), () {
-      if (mounted) { // Ensure the widget is still in the tree before updating state
+      if (mounted) {
         setState(() {
           _showLoadingIndicator = true;
         });
@@ -42,7 +39,6 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
 
   @override
   void dispose() {
-    // Cancel the timer if the widget is disposed to prevent memory leaks
     _loadingTimer?.cancel();
     super.dispose();
   }
@@ -60,21 +56,21 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
       context: context,
       builder: (alertDialogContext) {
         return AlertDialog(
-          title: const Text('CLEAR ALL'), // Made const
-          content: const Text('Are you sure to clear all favorites? This action cannot be undone.'), // Made const
+          title: const Text('CLEAR ALL'),
+          content: const Text('Are you sure to clear all favorites? This action cannot be undone.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(alertDialogContext, false),
-              child: const Text('Cancel'), // Made const
+              child: const Text('Cancel'),
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF219EBC), // Made const
+                foregroundColor: const Color(0xFF219EBC),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(alertDialogContext, true),
-              child: const Text('Confirm'), // Made const
+              child: const Text('Confirm'),
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF219EBC), // Made const
+                foregroundColor: const Color(0xFF219EBC),
               ),
             ),
           ],
@@ -84,21 +80,28 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
 
     if (confirm == true) {
       try {
-        // Query for documents where either original or translated text is favorited
-        final QuerySnapshot snapshot = await _firestore
+        // --- IMPORTANT CHANGE HERE ---
+        // Query favorited items from the 'favorites' collection
+        final QuerySnapshot favoritesSnapshot = await _firestore
             .collection('users')
             .doc(user.uid)
-            .collection('translations')
-            .where(Filter.or(
-            Filter('isOriginalFavorited', isEqualTo: true),
-            Filter('isTranslatedFavorited', isEqualTo: true)
-        ))
+            .collection('favorites')
             .get();
 
         WriteBatch batch = _firestore.batch();
-        for (DocumentSnapshot doc in snapshot.docs) {
-          // Instead of deleting the whole document, we'll just set favorite flags to false
-          batch.update(doc.reference, {
+        for (DocumentSnapshot doc in favoritesSnapshot.docs) {
+          // Delete from the 'favorites' collection
+          batch.delete(doc.reference);
+
+          // Also, update the corresponding document in the 'translations' (history) collection
+          // to set their favorite flags to false, maintaining consistency.
+          final historyDocRef = _firestore
+              .collection('users')
+              .doc(user.uid)
+              .collection('translations')
+              .doc(doc.id); // Use the same document ID
+
+          batch.update(historyDocRef, {
             'isOriginalFavorited': false,
             'isTranslatedFavorited': false,
           });
@@ -107,8 +110,8 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('All favorites cleared!'), // Made const
-            duration: Duration(milliseconds: 800), // Made const
+            content: Text('All favorites cleared!'),
+            duration: Duration(milliseconds: 800),
           ),
         );
       } catch (e) {
@@ -130,14 +133,49 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
     }
 
     try {
-      await _firestore
+      final DocumentReference favoriteDocRef = _firestore
+          .collection('users')
+          .doc(user.uid)
+          .collection('favorites')
+          .doc(documentId);
+
+      final DocumentReference historyDocRef = _firestore
           .collection('users')
           .doc(user.uid)
           .collection('translations')
-          .doc(documentId)
-          .update({
-        isOriginal ? 'isOriginalFavorited' : 'isTranslatedFavorited': false,
-      });
+          .doc(documentId);
+
+      // Get current favorite document to determine if both are being unfavorited
+      final DocumentSnapshot favoriteSnapshot = await favoriteDocRef.get();
+      if (!favoriteSnapshot.exists) return; // Should not happen if item is displayed
+
+      final Map<String, dynamic> data = favoriteSnapshot.data() as Map<String, dynamic>;
+      bool currentIsOriginalFavorited = data['isOriginalFavorited'] ?? false;
+      bool currentIsTranslatedFavorited = data['isTranslatedFavorited'] ?? false;
+
+      // Determine the new favorite statuses
+      bool newIsOriginalFavorited = isOriginal ? false : currentIsOriginalFavorited;
+      bool newIsTranslatedFavorited = !isOriginal ? false : currentIsTranslatedFavorited;
+
+      if (!newIsOriginalFavorited && !newIsTranslatedFavorited) {
+        // If both become false, delete the document from favorites collection
+        await favoriteDocRef.delete();
+        // Also update the history document to reflect unfavorited status
+        await historyDocRef.update({
+          'isOriginalFavorited': false,
+          'isTranslatedFavorited': false,
+        });
+      } else {
+        // Otherwise, just update the specific favorite flag in the favorites document
+        await favoriteDocRef.update({
+          isOriginal ? 'isOriginalFavorited' : 'isTranslatedFavorited': false,
+        });
+        // Also update the history document to reflect unfavorited status
+        await historyDocRef.update({
+          isOriginal ? 'isOriginalFavorited' : 'isTranslatedFavorited': false,
+        });
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Favorite removed!'),
@@ -152,34 +190,33 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
     }
   }
 
-  // Extracted AppBar creation into a method for reusability and potential const application
   AppBar _buildAppBar(ThemeData theme) {
     return AppBar(
       backgroundColor: theme.appBarTheme.backgroundColor,
       elevation: theme.appBarTheme.elevation ?? 0,
-      scrolledUnderElevation: 0, // Made const
+      scrolledUnderElevation: 0,
       surfaceTintColor: theme.scaffoldBackgroundColor,
-      automaticallyImplyLeading: false, // Made const
+      automaticallyImplyLeading: false,
       leading: IconButton(
         icon: Icon(
           Icons.arrow_back_ios_new_rounded,
           color: theme.iconTheme.color,
-          size: 25, // Made const
+          size: 25,
         ),
         onPressed: () => Navigator.of(context).pop(),
-        tooltip: 'Back', // Made const
+        tooltip: 'Back',
       ),
       title: Text(
         'Favorites',
         style: theme.appBarTheme.titleTextStyle,
       ),
-      centerTitle: true, // Made const
+      centerTitle: true,
       actions: [
         IconButton(
-          icon: const Icon(Icons.more_vert, size: 25), // Made const
+          icon: const Icon(Icons.more_vert, size: 25),
           color: theme.iconTheme.color,
           onPressed: _clearAllFavorites,
-          tooltip: 'Clear all favorites', // Made const
+          tooltip: 'Clear all favorites',
         ),
       ],
     );
@@ -190,22 +227,21 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
     final theme = Theme.of(context);
     final User? user = _auth.currentUser;
 
-    // Display message if user is not logged in
     if (user == null) {
       return Scaffold(
-        appBar: _buildAppBar(theme), // Use the extracted AppBar method
+        appBar: _buildAppBar(theme),
         body: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center, // Made const
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.login,
-                size: 60, // Made const
+                size: 60,
                 color: theme.iconTheme.color?.withOpacity(0.6),
               ),
-              const SizedBox(height: 16), // Made const
+              const SizedBox(height: 16),
               Text(
-                'Please log in to view your favorites.', // Made const
+                'Please log in to view your favorites.',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.textTheme.bodyLarge?.color?.withOpacity(0.6)),
               ),
             ],
@@ -216,33 +252,31 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
 
     // StreamBuilder to fetch data from Firestore
     return StreamBuilder<QuerySnapshot>(
+      // --- IMPORTANT CHANGE HERE ---
+      // Stream from the NEW 'favorites' collection
       stream: _firestore
           .collection('users')
           .doc(user.uid)
-          .collection('translations')
-          .where(Filter.or(
-          Filter('isOriginalFavorited', isEqualTo: true),
-          Filter('isTranslatedFavorited', isEqualTo: true)
-      ))
-          .orderBy('timestamp', descending: true) // Order by most recent favorite
+          .collection('favorites')
+      // No need for Filter.or here, as documents in 'favorites' only exist if favorited
+          .orderBy('timestamp', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
-        // Conditionally show CircularProgressIndicator based on _showLoadingIndicator state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
-            backgroundColor: theme.scaffoldBackgroundColor, // Match the theme's background
-            appBar: _buildAppBar(theme), // Show app bar for consistent look
-            body: Center( // Center the loading indicator
-              child: _showLoadingIndicator // Only show indicator if timer has fired
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: _buildAppBar(theme),
+            body: Center(
+              child: _showLoadingIndicator
                   ? CircularProgressIndicator(color: theme.colorScheme.secondary)
-                  : const SizedBox.shrink(), // Otherwise, show nothing to avoid flicker
+                  : const SizedBox.shrink(),
             ),
           );
         }
 
         if (snapshot.hasError) {
           return Scaffold(
-            appBar: _buildAppBar(theme), // Use the extracted AppBar method
+            appBar: _buildAppBar(theme),
             body: Center(child: Text('Error: ${snapshot.error}')),
           );
         }
@@ -251,19 +285,19 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
 
         if (documents.isEmpty) {
           return Scaffold(
-            appBar: _buildAppBar(theme), // Use the extracted AppBar method
+            appBar: _buildAppBar(theme),
             body: Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center, // Made const
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
                     Icons.favorite_border,
-                    size: 60, // Made const
+                    size: 60,
                     color: theme.iconTheme.color?.withOpacity(0.6),
                   ),
-                  const SizedBox(height: 16), // Made const
+                  const SizedBox(height: 16),
                   Text(
-                    'No favorites yet.', // Made const
+                    'No favorites yet.',
                     style: theme.textTheme.bodyLarge?.copyWith(color: theme.textTheme.bodyLarge?.color?.withOpacity(0.6)),
                   ),
                 ],
@@ -275,12 +309,12 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
         return Scaffold(
           key: scaffoldKey,
           backgroundColor: theme.scaffoldBackgroundColor,
-          appBar: _buildAppBar(theme), // Use the extracted AppBar method
-          body: SafeArea( // Made const
+          appBar: _buildAppBar(theme),
+          body: SafeArea(
             child: ListView.separated(
-              padding: const EdgeInsets.all(16), // Made const
+              padding: const EdgeInsets.all(16),
               itemCount: documents.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 8), // Made const
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final doc = documents[index];
                 final data = doc.data() as Map<String, dynamic>;
@@ -292,23 +326,27 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
                 String displayedText;
                 bool isOriginal;
                 if (isOriginalFavorited) {
+                  // Prioritize displaying original if both are favorited or only original
                   displayedText = originalText;
                   isOriginal = true;
                 } else if (isTranslatedFavorited) {
                   displayedText = translatedText;
                   isOriginal = false;
                 } else {
+                  // Fallback: This case should ideally not happen if query filters correctly
+                  // but if it does, show original and treat as original favorite context.
                   displayedText = originalText;
                   isOriginal = true;
                 }
 
                 return FavoritesCardWidget(
                   text: displayedText,
-                  contentType: data['type'] ?? 'text',
+                  contentType: data['type'] ?? 'text', // Make sure 'type' is saved in favorites collection
                   documentId: doc.id,
                   isOriginalTextFavorited: isOriginal,
                   onFavoriteRemoved: _removeFavorite,
                   onTap: () {
+                    // --- Ensure documentId is passed to TranslationPage ---
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -319,7 +357,7 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
                           initialTranslatedText: translatedText,
                           initialIsOriginalFavorited: isOriginalFavorited,
                           initialIsTranslatedFavorited: isTranslatedFavorited,
-                          documentId: doc.id, // <-- make sure this is not null
+                          documentId: doc.id, // Pass doc ID
                         ),
                       ),
                     );
