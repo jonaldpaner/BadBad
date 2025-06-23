@@ -49,17 +49,16 @@ class TranslationCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
 
-          // Wrap the text inside a LayoutBuilder to get height constraints
           LayoutBuilder(
             builder: (context, constraints) {
               return ConstrainedBox(
-                constraints: BoxConstraints(
+                constraints: const BoxConstraints( // Made const
                   minHeight: 200, // minimum height to push text down a bit
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 20), // Made const
                   child: Text(
-                    text,
+                    text, // Correctly refers to the widget's text property
                     textAlign: TextAlign.justify,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       height: 1.5,
@@ -71,10 +70,9 @@ class TranslationCard extends StatelessWidget {
             },
           ),
 
-          // Spacer pushes buttons down to bottom only if there's extra space
           const SizedBox(height: 20),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20), // Adjust as needed
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -83,14 +81,16 @@ class TranslationCard extends StatelessWidget {
                   onCopyPressed ?? () {},
                   theme.iconTheme.color ?? Colors.black54,
                 ),
-                const SizedBox(width: 10),
-                _iconButton(
-                  isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                  onFavoritePressed ?? () {},
-                  isFavorited
-                      ? (isDarkMode ? Colors.white : Colors.black)
-                      : (theme.iconTheme.color ?? Colors.black54),
-                ),
+                if (onFavoritePressed != null) ...[
+                  const SizedBox(width: 10),
+                  _iconButton(
+                    isFavorited ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                    onFavoritePressed!,
+                    isFavorited
+                        ? (isDarkMode ? Colors.white : Colors.black)
+                        : (theme.iconTheme.color ?? Colors.black54),
+                  ),
+                ],
               ],
             ),
           ),

@@ -140,8 +140,8 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Favorite removed!'), // Made const
-          duration: Duration(milliseconds: 500), // Made const
+          content: Text('Favorite removed!'),
+          duration: Duration(milliseconds: 800),
         ),
       );
     } catch (e) {
@@ -317,6 +317,9 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
                           fromLanguage: data['fromLanguage'] ?? 'English',
                           toLanguage: data['toLanguage'] ?? 'Ata Manobo',
                           initialTranslatedText: translatedText,
+                          initialIsOriginalFavorited: isOriginalFavorited,
+                          initialIsTranslatedFavorited: isTranslatedFavorited,
+                          documentId: doc.id, // <-- make sure this is not null
                         ),
                       ),
                     );

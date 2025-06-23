@@ -3,14 +3,17 @@ import 'package:flutter/services.dart';
 import 'package:ahhhtest/components/translation_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:http/http.dart' as http; // Import for HTTP requests
-import 'dart:convert'; // Import for JSON decoding
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class TranslationPage extends StatefulWidget {
   final String originalText;
   final String fromLanguage;
   final String toLanguage;
-  final String? initialTranslatedText; // ADDED: Optional parameter for pre-existing translation
+  final String? initialTranslatedText;
+  final bool? initialIsOriginalFavorited;
+  final bool? initialIsTranslatedFavorited;
+  final String? documentId;
 
   const TranslationPage({
     Key? key,
@@ -18,6 +21,9 @@ class TranslationPage extends StatefulWidget {
     required this.fromLanguage,
     required this.toLanguage,
     this.initialTranslatedText,
+    this.initialIsOriginalFavorited,
+    this.initialIsTranslatedFavorited,
+    this.documentId,
   }) : super(key: key);
 
   @override
@@ -29,15 +35,13 @@ class _TranslationPageState extends State<TranslationPage> {
   bool isTranslatedFavorited = false;
 
   String? _currentTranslationDocId;
-  String _translatedText = ''; // State variable to hold the actual translated text
-  bool _isLoadingTranslation = true; // State to manage loading indicator
+  String _translatedText = '';
+  bool _isLoadingTranslation = true;
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Asynchronous function to fetch translation from the API
   Future<String> _fetchTranslation(String message) async {
-    // Determine the API endpoint based on the fromLanguage
     String? apiEndpoint;
     if (widget.fromLanguage == 'Ata Manobo') {
       apiEndpoint = 'ata';
@@ -48,32 +52,28 @@ class _TranslationPageState extends State<TranslationPage> {
     }
 
     try {
-      final encodedMessage = Uri.encodeComponent(message); // Encode the message for the URL
+      final encodedMessage = Uri.encodeComponent(message);
       final url = Uri.parse('https://badbad-api.onrender.com/translate/$apiEndpoint?message=$encodedMessage');
-      print('Fetching translation from URL: $url'); // Debug print
-
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = json.decode(response.body);
         return data['translation']?.toString() ?? 'Translation not found.';
       } else {
-        print('Failed to load translation: ${response.statusCode}, Body: ${response.body}'); // Debug print
         return 'Error: Could not translate (Status Code: ${response.statusCode})';
       }
     } catch (e) {
-      print('Error fetching translation: $e'); // Debug print
       return 'Error: Could not translate (Network Error)';
     }
   }
 
-  // Method to save translation history to Firestore and get the document ID
   Future<void> _saveNewTranslationHistory(String originalText, String translatedText) async {
     final User? user = _auth.currentUser;
 
     if (user != null) {
       try {
-        final docRef = await _firestore.collection('users')
+        final docRef = await _firestore
+            .collection('users')
             .doc(user.uid)
             .collection('translations')
             .add({
@@ -87,57 +87,47 @@ class _TranslationPageState extends State<TranslationPage> {
           'type': 'text',
         });
         _currentTranslationDocId = docRef.id;
-        print('New translation history saved to Firestore. Doc ID: $_currentTranslationDocId'); // Debug print
       } catch (e) {
-        print('Error saving new translation history to Firestore: $e'); // Debug print
+        print('Error saving translation: $e');
       }
-    } else {
-      print('User not logged in. New translation history not saved to Firestore.'); // Debug print
     }
   }
 
-  // Method to update the favorite status in Firestore for the current displayed translation
-  Future<void> _updateFavoriteStatusInFirestore(String fieldName, bool value) async {
+  Future<bool> _updateFavoriteStatusInFirestore(String fieldName, bool value) async {
     final User? user = _auth.currentUser;
 
     if (user != null && _currentTranslationDocId != null) {
       try {
-        await _firestore.collection('users')
+        await _firestore
+            .collection('users')
             .doc(user.uid)
             .collection('translations')
             .doc(_currentTranslationDocId!)
-            .update({
-          fieldName: value,
-        });
-        print('Firestore updated: $fieldName to $value for $_currentTranslationDocId'); // Debug print
+            .update({fieldName: value});
+        return true;
       } catch (e) {
-        print('Error updating $fieldName in Firestore: $e'); // Debug print
+        print('Error updating $fieldName: $e');
+        return false;
       }
-    } else if (user == null) {
-      print('User not logged in. Cannot update favorite status in Firestore.'); // Debug print
-    } else {
-      print('No translation document ID available to update favorite status.'); // Debug print
     }
+    return false;
   }
 
   @override
   void initState() {
     super.initState();
-    print('TranslationPage: initState called.'); // Debug print
-    print('TranslationPage: originalText received: "${widget.originalText}"'); // Debug print
-    print('TranslationPage: initialTranslatedText received: "${widget.initialTranslatedText}"'); // Debug print
+    _currentTranslationDocId = widget.documentId;
+    isOriginalFavorited = widget.initialIsOriginalFavorited ?? false;
+    isTranslatedFavorited = widget.initialIsTranslatedFavorited ?? false;
 
     if (widget.initialTranslatedText != null && widget.initialTranslatedText!.isNotEmpty) {
       _translatedText = widget.initialTranslatedText!;
       _isLoadingTranslation = false;
-      print('TranslationPage: Displaying initial translated text from history.'); // Debug print
     } else {
-      print('TranslationPage: No initial translated text, fetching new translation from API.'); // Debug print
       _fetchNewTranslationAndSaveHistory();
     }
   }
 
-  // Orchestrates fetching translation and saving history for NEW translations
   Future<void> _fetchNewTranslationAndSaveHistory() async {
     setState(() {
       _isLoadingTranslation = true;
@@ -145,6 +135,14 @@ class _TranslationPageState extends State<TranslationPage> {
     });
 
     final fetchedText = await _fetchTranslation(widget.originalText);
+
+    if (fetchedText.startsWith('Error')) {
+      setState(() {
+        _translatedText = fetchedText;
+        _isLoadingTranslation = false;
+      });
+      return;
+    }
 
     setState(() {
       _translatedText = fetchedText;
@@ -156,37 +154,35 @@ class _TranslationPageState extends State<TranslationPage> {
 
   @override
   Widget build(BuildContext context) {
-    print('TranslationPage: build method called. Current translated text: "${_translatedText}"'); // Debug print
     final theme = Theme.of(context);
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: theme.scaffoldBackgroundColor, // Match scaffold background
-        surfaceTintColor: Colors.transparent, // Prevent Material 3 overlay
-        elevation: 0, // Flat look
+        backgroundColor: theme.scaffoldBackgroundColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
         leading: IconButton(
-          icon: Icon( // Made const
+          icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            color: theme.appBarTheme.iconTheme?.color,
-            size: 25, // Made const
+            color: theme.iconTheme.color,
+            size: 25,
           ),
           onPressed: () => Navigator.of(context).pop(),
-          tooltip: 'Back', // Made const
+          tooltip: 'Back',
         ),
         title: Text(
           'Translation',
           style: theme.appBarTheme.titleTextStyle,
         ),
-        centerTitle: true, // Made const
+        centerTitle: true,
       ),
-      body: SafeArea( // Made const
+      body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16), // Made const
-          child: SingleChildScrollView( // Made const
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
             child: Column(
               children: [
-                // TranslationCard for original text (assumed to be optimized internally)
                 TranslationCard(
                   language: widget.fromLanguage,
                   text: widget.originalText,
@@ -195,48 +191,48 @@ class _TranslationPageState extends State<TranslationPage> {
                     Clipboard.setData(ClipboardData(text: widget.originalText));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('Original text copied to clipboard'), // Made const
-                        duration: const Duration(milliseconds: 500), // Made const
+                        content: const Text('Original text copied to clipboard'),
+                        duration: const Duration(milliseconds: 500),
                         backgroundColor: theme.colorScheme.secondary,
-                        behavior: SnackBarBehavior.floating, // Made const
+                        behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
-                  onFavoritePressed: () {
-                    setState(() {
-                      isOriginalFavorited = !isOriginalFavorited;
-                    });
-                    _updateFavoriteStatusInFirestore('isOriginalFavorited', isOriginalFavorited);
+                  onFavoritePressed: () async {
+                    final prev = isOriginalFavorited;
+                    setState(() => isOriginalFavorited = !prev);
+                    final success = await _updateFavoriteStatusInFirestore('isOriginalFavorited', !prev);
+                    if (!success) {
+                      setState(() => isOriginalFavorited = prev);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Failed to update favorite')),
+                      );
+                    }
                   },
                 ),
-                const SizedBox(height: 16), // Made const
+                const SizedBox(height: 16),
                 _isLoadingTranslation
                     ? Center(child: CircularProgressIndicator(color: theme.colorScheme.secondary))
                     : TranslationCard(
                   language: widget.toLanguage,
                   text: _translatedText,
-                  isFavorited: isTranslatedFavorited,
+                  onFavoritePressed: null,
+                  isFavorited: false,
                   onCopyPressed: () {
                     Clipboard.setData(ClipboardData(text: _translatedText));
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: const Text('Translated text copied to clipboard'), // Made const
-                        duration: const Duration(milliseconds: 500), // Made const
+                        content: const Text('Translated text copied to clipboard'),
+                        duration: const Duration(milliseconds: 500),
                         backgroundColor: theme.colorScheme.secondary,
-                        behavior: SnackBarBehavior.floating, // Made const
+                        behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
-                  onFavoritePressed: () {
-                    setState(() {
-                      isTranslatedFavorited = !isTranslatedFavorited;
-                    });
-                    _updateFavoriteStatusInFirestore('isTranslatedFavorited', isTranslatedFavorited);
-                  },
                 ),
-                const SizedBox(height: 24), // Made const
-                const _TranslateMoreButton(), // Made const
-                const SizedBox(height: 24), // Made const
+                const SizedBox(height: 24),
+                const _TranslateMoreButton(),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -247,17 +243,17 @@ class _TranslationPageState extends State<TranslationPage> {
 }
 
 class _TranslateMoreButton extends StatelessWidget {
-  const _TranslateMoreButton(); // Made const
+  const _TranslateMoreButton();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return TextButton.icon(
       onPressed: () => Navigator.of(context).pop(),
-      icon: const Icon(Icons.translate,color: Color(0xFF219EBC)), // Made const
+      icon: const Icon(Icons.translate, color: Color(0xFF219EBC)),
       label: Text(
         'Translate More',
-        style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16, color: const Color(0xFF219EBC)), // Made const for color
+        style: theme.textTheme.bodyLarge?.copyWith(fontSize: 16, color: const Color(0xFF219EBC)),
       ),
     );
   }
