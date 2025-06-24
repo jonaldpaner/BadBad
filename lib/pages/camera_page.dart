@@ -348,24 +348,7 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   List<TextBox> _sortWordsByReadingOrder(List<TextBox> words) {
-    if (words.isEmpty) return [];
-
-    final List<TextBox> sortedWords = List.from(words);
-
-    sortedWords.sort((a, b) {
-      final Offset centroidA = _calculateCentroid(a.cornerPoints);
-      final Offset centroidB = _calculateCentroid(b.cornerPoints);
-
-      int yCompare = centroidA.dy.compareTo(centroidB.dy);
-      if (yCompare != 0) {
-        if ((centroidA.dy - centroidB.dy).abs() > (min(a.rect.height, b.rect.height) * 0.5)) {
-          return yCompare;
-        }
-      }
-      return centroidA.dx.compareTo(centroidB.dx);
-    });
-
-    return sortedWords;
+    return TextRecognitionHelpers.sortWordsByReadingOrder(words);
   }
 
   void _updateSelectionBasedOnHandleDrag(DragUpdateDetails details) {

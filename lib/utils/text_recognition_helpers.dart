@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'dart:math';
-import 'package:flutter/material.dart';
-import '../models/text_box.dart'; // Assuming this defines TextBox with a 'rect' property
+import 'package:flutter/material.dart'; // For Rect, Offset
+import '../models/text_box.dart';
 
 /// Determines if a given testPoint lies inside a polygon defined by a list of points.
 /// Uses the winding number algorithm for robustness with complex polygons.
@@ -237,4 +237,63 @@ Rect rectFromCornerPoints(List<Offset> cornerPoints) {
     maxY = max(maxY, p.dy);
   }
   return Rect.fromLTRB(minX, minY, maxX, maxY);
+}
+
+/// Sorts words by reading order, accounting for lines and their potential rotation.
+/// This assumes words are provided in original image coordinates.
+List<TextBox> sortWordsByReadingOrder(List<TextBox> words) {
+  if (words.isEmpty) return [];
+
+  // 1. Group words into lines using the existing helper
+  final List<List<TextBox>> lines = groupWordsByLine(words);
+
+  List<TextBox> sortedResult = [];
+
+  // Sort lines vertically based on the top of the first word in each line's bounding box
+  lines.sort((a, b) {
+    final double aTopY = a.isNotEmpty ? a.first.rect.top : double.infinity;
+    final double bTopY = b.isNotEmpty ? b.first.rect.top : double.infinity;
+    return aTopY.compareTo(bTopY);
+  });
+
+  // 2. Sort words within each line by projecting them onto the line's dominant axis
+  for (final lineWords in lines) {
+    if (lineWords.isEmpty) continue;
+
+    // Calculate the dominant angle of the line
+    double lineAngleRadians = 0;
+    if (lineWords.length > 1) {
+      // Use the first and last word's centroids for a simple slope calculation
+      final Offset firstCentroid = calculateCentroid(lineWords.first.cornerPoints);
+      final Offset lastCentroid = calculateCentroid(lineWords.last.cornerPoints);
+
+      final double deltaX = lastCentroid.dx - firstCentroid.dx;
+      final double deltaY = lastCentroid.dy - firstCentroid.dy;
+
+      if (deltaX != 0) {
+        lineAngleRadians = atan2(deltaY, deltaX);
+        // Normalize angle to be between -PI/2 and PI/2 for consistent horizontal sorting
+        if (lineAngleRadians > pi / 2) lineAngleRadians -= pi;
+        if (lineAngleRadians < -pi / 2) lineAngleRadians += pi;
+      }
+    }
+
+    final double cosAngle = cos(lineAngleRadians);
+    final double sinAngle = sin(lineAngleRadians);
+
+    // Sort words within this line by projecting their centroids onto the line's axis
+    lineWords.sort((a, b) {
+      final Offset centroidA = calculateCentroid(a.cornerPoints);
+      final Offset centroidB = calculateCentroid(b.cornerPoints);
+
+      // Project centroids onto the line's axis (effectively rotating the coordinate system)
+      final double projectedXA = centroidA.dx * cosAngle + centroidA.dy * sinAngle;
+      final double projectedXB = centroidB.dx * cosAngle + centroidB.dy * sinAngle;
+
+      return projectedXA.compareTo(projectedXB);
+    });
+    sortedResult.addAll(lineWords);
+  }
+
+  return sortedResult;
 }
