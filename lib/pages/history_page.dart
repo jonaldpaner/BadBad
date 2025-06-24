@@ -1,8 +1,9 @@
+// pages/history_page.dart
 import 'package:flutter/material.dart';
 import 'package:ahhhtest/components/history_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:ahhhtest/pages/translation_page.dart';
+import 'package:ahhhtest/pages/translation_page.dart'; // Ensure this import is correct
 import 'dart:async'; // Import for Timer
 
 class HistoryPageWidget extends StatefulWidget {
@@ -59,21 +60,21 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
       context: context,
       builder: (alertDialogContext) {
         return AlertDialog(
-          title: const Text('CLEAR ALL'), // Made const
-          content: const Text('Are you sure to clear all history? This action cannot be undone.'), // Made const
+          title: const Text('CLEAR ALL'),
+          content: const Text('Are you sure to clear all history? This action cannot be undone.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(alertDialogContext, false),
-              child: const Text('Cancel'), // Made const
+              child: const Text('Cancel'),
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF219EBC), // Made const
+                foregroundColor: const Color(0xFF219EBC),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(alertDialogContext, true),
-              child: const Text('Confirm'), // Made const
+              child: const Text('Confirm'),
               style: TextButton.styleFrom(
-                foregroundColor: const Color(0xFF219EBC), // Made const
+                foregroundColor: const Color(0xFF219EBC),
               ),
             ),
           ],
@@ -91,14 +92,16 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
 
         WriteBatch batch = _firestore.batch();
         for (DocumentSnapshot doc in snapshot.docs) {
+          // --- IMPORTANT CHANGE HERE ---
+          // Only delete from the 'translations' (history) collection
           batch.delete(doc.reference);
         }
         await batch.commit();
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('All history cleared!'), // Made const
-            duration: Duration(milliseconds: 800), // Made const
+            content: Text('All history cleared!'),
+            duration: Duration(milliseconds: 800),
           ),
         );
       } catch (e) {
@@ -120,6 +123,8 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
     }
 
     try {
+      // --- IMPORTANT CHANGE HERE ---
+      // Only delete from the 'translations' (history) collection
       await _firestore
           .collection('users')
           .doc(user.uid)
@@ -129,16 +134,16 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('History item deleted!'), // Made const
-          duration: Duration(milliseconds: 800), // Made const
+          content: Text('History item deleted!'),
+          duration: Duration(milliseconds: 800),
         ),
       );
-      print('Document $documentId deleted from Firestore.');
+      print('Document $documentId deleted from Firestore (History).');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to delete history item: $e')),
       );
-      print('Error deleting document $documentId: $e');
+      print('Error deleting document $documentId from history: $e');
     }
   }
 
@@ -146,7 +151,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
     return [
       for (int i = 0; i < cards.length; i++) ...[
         cards[i],
-        if (i != cards.length - 1) const SizedBox(height: 8), // Made const
+        if (i != cards.length - 1) const SizedBox(height: 8),
       ],
     ];
   }
@@ -154,29 +159,29 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
   AppBar buildAppBar(ThemeData theme) {
     return AppBar(
       backgroundColor: theme.appBarTheme.backgroundColor,
-      elevation: theme.appBarTheme.elevation ?? 0, // Default to 0 if null
-      scrolledUnderElevation: 0, // Made const
+      elevation: theme.appBarTheme.elevation ?? 0,
+      scrolledUnderElevation: 0,
       surfaceTintColor: theme.scaffoldBackgroundColor,
       leading: IconButton(
         icon: Icon(
           Icons.arrow_back_ios_new_rounded,
           color: theme.iconTheme.color,
-          size: 25, // Made const
+          size: 25,
         ),
         onPressed: () => Navigator.of(context).pop(),
-        tooltip: 'Back', // Made const
+        tooltip: 'Back',
       ),
       title: Text(
         'Recent History',
         style: theme.appBarTheme.titleTextStyle,
       ),
-      centerTitle: true, // Made const
+      centerTitle: true,
       actions: [
         IconButton(
-          icon: const Icon(Icons.more_vert, size: 25), // Made const
+          icon: const Icon(Icons.more_vert, size: 25),
           color: theme.iconTheme.color,
           onPressed: _clearAllHistory,
-          tooltip: 'Clear all history', // Made const
+          tooltip: 'Clear all history',
         ),
       ],
     );
@@ -192,10 +197,10 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
         appBar: buildAppBar(theme),
         body: Center(
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center, // Made const
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.login, size: 60, color: theme.disabledColor), // Made const for size
-              const SizedBox(height: 16), // Made const
+              Icon(Icons.login, size: 60, color: theme.disabledColor),
+              const SizedBox(height: 16),
               Text(
                 'Please log in to view your history.',
                 style: theme.textTheme.bodyLarge?.copyWith(color: theme.disabledColor),
@@ -207,6 +212,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
     }
 
     return StreamBuilder<QuerySnapshot>(
+      // --- IMPORTANT: Still stream from 'translations' collection for history ---
       stream: _firestore
           .collection('users')
           .doc(user.uid)
@@ -214,15 +220,14 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
           .orderBy('timestamp', descending: true)
           .snapshots(),
       builder: (context, snapshot) {
-        // Conditionally show CircularProgressIndicator based on _showLoadingIndicator state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
-            backgroundColor: theme.scaffoldBackgroundColor, // Match the theme's background
-            appBar: buildAppBar(theme), // Show app bar for consistent look
-            body: Center( // Center the loading indicator
-              child: _showLoadingIndicator // Only show indicator if timer has fired
+            backgroundColor: theme.scaffoldBackgroundColor,
+            appBar: buildAppBar(theme),
+            body: Center(
+              child: _showLoadingIndicator
                   ? CircularProgressIndicator(color: theme.colorScheme.secondary)
-                  : const SizedBox.shrink(), // Otherwise, show nothing to avoid flicker
+                  : const SizedBox.shrink(),
             ),
           );
         }
@@ -239,10 +244,10 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
             appBar: buildAppBar(theme),
             body: Center(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center, // Made const
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.book, size: 60, color: theme.disabledColor), // Made const for size
-                  const SizedBox(height: 16), // Made const
+                  Icon(Icons.book, size: 60, color: theme.disabledColor),
+                  const SizedBox(height: 16),
                   Text(
                     'No translation history yet.',
                     style: theme.textTheme.bodyLarge?.copyWith(color: theme.disabledColor),
@@ -264,8 +269,8 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
 
         final DateTime now = DateTime.now();
         final DateTime today = DateTime(now.year, now.month, now.day);
-        final DateTime yesterday = today.subtract(const Duration(days: 1)); // Made const
-        final DateTime lastWeek = today.subtract(const Duration(days: 7)); // Made const
+        final DateTime yesterday = today.subtract(const Duration(days: 1));
+        final DateTime lastWeek = today.subtract(const Duration(days: 7));
 
         for (var doc in documents) {
           final data = doc.data() as Map<String, dynamic>;
@@ -291,6 +296,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
               documentId: doc.id,
               onDelete: () => _deleteHistoryItem(doc.id),
               onTap: () {
+                // --- Ensure documentId is passed to TranslationPage ---
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -306,7 +312,6 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
                   ),
                 );
               },
-
             ),
           );
         }
@@ -317,33 +322,33 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
           appBar: buildAppBar(theme),
           body: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16), // Made const
+              padding: const EdgeInsets.all(16),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, // Made const
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (groupedHistory['Today']!.isNotEmpty) ...[
-                    Text('Today', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)), // Made const for fontWeight
-                    const SizedBox(height: 8), // Made const
+                    Text('Today', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
                     ...withSpacing(groupedHistory['Today']!),
-                    const SizedBox(height: 24), // Made const
+                    const SizedBox(height: 24),
                   ],
                   if (groupedHistory['Yesterday']!.isNotEmpty) ...[
-                    Text('Yesterday', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)), // Made const for fontWeight
-                    const SizedBox(height: 8), // Made const
+                    Text('Yesterday', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
                     ...withSpacing(groupedHistory['Yesterday']!),
-                    const SizedBox(height: 24), // Made const
+                    const SizedBox(height: 24),
                   ],
                   if (groupedHistory['Last Week']!.isNotEmpty) ...[
-                    Text('Last Week', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)), // Made const for fontWeight
-                    const SizedBox(height: 8), // Made const
+                    Text('Last Week', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
                     ...withSpacing(groupedHistory['Last Week']!),
-                    const SizedBox(height: 24), // Made const
+                    const SizedBox(height: 24),
                   ],
                   if (groupedHistory['Older']!.isNotEmpty) ...[
-                    Text('Older', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)), // Made const for fontWeight
-                    const SizedBox(height: 8), // Made const
+                    Text('Older', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
                     ...withSpacing(groupedHistory['Older']!),
-                    const SizedBox(height: 24), // Made const
+                    const SizedBox(height: 24),
                   ],
                 ],
               ),
