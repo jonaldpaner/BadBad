@@ -6,7 +6,6 @@ import 'package:ahhhtest/components/login_signup_dialog.dart';
 import 'package:ahhhtest/pages/camera_page.dart';
 import 'package:ahhhtest/pages/translation_page.dart';
 import 'package:ahhhtest/components/instruction_dialog.dart';
-
 import '../components/translation_input_card.dart';
 
 class HomePage extends StatefulWidget {
@@ -18,7 +17,7 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController textController = TextEditingController();
   final FocusNode textFieldFocusNode = FocusNode();
@@ -26,12 +25,17 @@ class _HomePageState extends State<HomePage> {
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
-  bool get isLoggedIn => widget.currentUser != null;
-  bool get _shouldShowLoginPrompt => widget.currentUser == null || widget.currentUser!.isAnonymous;
+  static const double _restingPadding = 100.0;
+
+  bool isTextFieldFocused = false;
+
+  bool get _shouldShowLoginPrompt =>
+      widget.currentUser == null || widget.currentUser!.isAnonymous;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -44,39 +48,14 @@ class _HomePageState extends State<HomePage> {
     textFieldFocusNode.addListener(_onFocusChanged);
   }
 
-  @override
-  void didUpdateWidget(covariant HomePage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.currentUser != oldWidget.currentUser) {
-      print('HomePage: currentUser updated: ${widget.currentUser != null ? 'logged in' : 'logged out'}');
-    }
-  }
-
-  @override
-  void dispose() {
-    textController.dispose();
-    textFieldFocusNode.removeListener(_onFocusChanged);
-    textFieldFocusNode.dispose();
-    super.dispose();
-  }
-
   void _onFocusChanged() {
-    if (textFieldFocusNode.hasFocus) {
+    setState(() {
+      isTextFieldFocused = textFieldFocusNode.hasFocus;
+    });
+    if (isTextFieldFocused) {
       HapticFeedback.selectionClick();
     }
   }
-
-  double _calculateKeyboardPadding(double keyboardHeight, double safeAreaBottom) {
-    const double restingPadding = 50.0;
-    const double minKeyboardPaddingAboveKeyboard = 20.0;
-
-    if (keyboardHeight > 0 && textFieldFocusNode.hasFocus) {
-      return keyboardHeight + safeAreaBottom + minKeyboardPaddingAboveKeyboard;
-    } else {
-      return safeAreaBottom + restingPadding;
-    }
-  }
-
 
   void toggleLanguages() {
     HapticFeedback.lightImpact();
@@ -87,32 +66,36 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void _performActionAndManageFocus(VoidCallback action, {Future<void> Function()? postAction}) async {
-    if (textFieldFocusNode.hasFocus) {
-      textFieldFocusNode.unfocus();
-    }
+  void _performActionAndManageFocus(VoidCallback action,
+      {Future<void> Function()? postAction}) async {
+    FocusScope.of(context).unfocus();
+    setState(() {
+      isTextFieldFocused = false;
+    });
+
     textFieldFocusNode.canRequestFocus = false;
-
     action();
-
-    if (postAction != null) {
-      await postAction();
-    }
-
+    if (postAction != null) await postAction();
     textFieldFocusNode.canRequestFocus = true;
+  }
+
+  @override
+  void dispose() {
+    textController.dispose();
+    textFieldFocusNode.removeListener(_onFocusChanged);
+    textFieldFocusNode.dispose();
+    super.dispose();
+    WidgetsBinding.instance.removeObserver(this);
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    final double keyboardInset = MediaQuery.of(context).viewInsets.bottom;
-    final double safeAreaBottomPadding = MediaQuery.of(context).padding.bottom;
 
-    final double naturalBottomPadding = _calculateKeyboardPadding(
-        keyboardInset,
-        safeAreaBottomPadding
-    );
+    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final double bottomPadding =
+    keyboardHeight > 0 ? keyboardHeight + 20 : _restingPadding;
 
     return Scaffold(
       key: scaffoldKey,
@@ -137,10 +120,13 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: theme.scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
       resizeToAvoidBottomInset: false,
-
       body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           FocusScope.of(context).unfocus();
+          setState(() {
+            isTextFieldFocused = false;
+          });
         },
         child: Stack(
           children: [
@@ -162,7 +148,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
 
-            // Top row for menu, help, and profile icons
+            // AppBar Row
             Positioned(
               top: 0,
               left: 0,
@@ -177,11 +163,8 @@ class _HomePageState extends State<HomePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: Icon(
-                        Icons.menu_rounded,
-                        color: theme.iconTheme.color,
-                        size: 25,
-                      ),
+                      icon: Icon(Icons.menu_rounded,
+                          color: theme.iconTheme.color, size: 25),
                       onPressed: () {
                         _performActionAndManageFocus(() {
                           scaffoldKey.currentState?.openDrawer();
@@ -191,11 +174,8 @@ class _HomePageState extends State<HomePage> {
                     Row(
                       children: [
                         IconButton(
-                          icon: Icon(
-                            Icons.help_outline,
-                            color: theme.iconTheme.color,
-                            size: 25,
-                          ),
+                          icon: Icon(Icons.help_outline,
+                              color: theme.iconTheme.color, size: 25),
                           onPressed: () {
                             FocusScope.of(context).requestFocus(FocusNode());
                             _performActionAndManageFocus(
@@ -203,29 +183,25 @@ class _HomePageState extends State<HomePage> {
                                 context: context,
                                 builder: (context) => const InstructionDialog(),
                               ),
-                              postAction: () async => await null,
                             );
                           },
                         ),
                         IconButton(
-                          icon: Icon(
-                            Icons.person_outline,
-                            color: theme.iconTheme.color,
-                            size: 25,
-                          ),
+                          icon: Icon(Icons.person_outline,
+                              color: theme.iconTheme.color, size: 25),
                           onPressed: _shouldShowLoginPrompt
                               ? () {
-                            FocusScope.of(context).requestFocus(FocusNode());
+                            FocusScope.of(context)
+                                .requestFocus(FocusNode());
                             _performActionAndManageFocus(
                                   () => showDialog(
                                 context: context,
                                 builder: (context) => LoginSignUpDialog(
                                   onLogin: () {
-                                    print('HomePage: User logged in via dialog.');
+                                    print('HomePage: User logged in.');
                                   },
                                 ),
                               ),
-                              postAction: () async => await null,
                             );
                           }
                               : null,
@@ -237,45 +213,48 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            // Translation input card at the bottom
+            // Translation Input Card
             Align(
               alignment: Alignment.bottomCenter,
               child: AnimatedPadding(
-                padding: EdgeInsets.only(
-                  bottom: naturalBottomPadding,
-                  left: 20.0,
-                  right: 20.0,
-                ),
-                duration: Duration(
-                  milliseconds: keyboardInset > 0 ? 250 : 200,
-                ),
+                duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOutCubic,
+                padding: EdgeInsets.only(
+                  bottom: bottomPadding,
+                  left: 20,
+                  right: 20,
+                ),
                 child: TranslationInputCard(
                   fromLanguage: fromLanguage,
                   toLanguage: toLanguage,
                   onToggleLanguages: toggleLanguages,
                   textController: textController,
                   focusNode: textFieldFocusNode,
-                  onCameraPressed: () {
-                    _performActionAndManageFocus(
-                          () => Navigator.push(
+                  onCameraPressed: () async {
+                    _performActionAndManageFocus(() {}, postAction: () async {
+                      await Future.delayed(const Duration(milliseconds: 250));
+                      if (!mounted) return;
+                      Navigator.push(
                         context,
                         PageRouteBuilder(
-                          pageBuilder: (context, animation, secondaryAnimation) => const CameraPage(),
-                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          pageBuilder: (context, animation, secondaryAnimation) =>
+                          const CameraPage(),
+                          transitionsBuilder: (context, animation,
+                              secondaryAnimation, child) {
                             return SlideTransition(
                               position: animation.drive(
-                                Tween(begin: const Offset(0.0, 1.0), end: Offset.zero)
-                                    .chain(CurveTween(curve: Curves.easeOutCubic)),
+                                Tween(
+                                  begin: const Offset(0.0, 1.0),
+                                  end: Offset.zero,
+                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
                               ),
                               child: child,
                             );
                           },
                           transitionDuration: const Duration(milliseconds: 300),
                         ),
-                      ),
-                      postAction: () async => await null,
-                    );
+                      );
+                    });
                     HapticFeedback.lightImpact();
                   },
                   onTranslatePressed: () {
@@ -297,16 +276,20 @@ class _HomePageState extends State<HomePage> {
                           () => Navigator.push(
                         context,
                         PageRouteBuilder(
-                          pageBuilder: (context, animation, secondaryAnimation) => TranslationPage(
-                            originalText: inputText,
-                            fromLanguage: fromLanguage,
-                            toLanguage: toLanguage,
-                          ),
-                          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                          pageBuilder: (context, animation, secondaryAnimation) =>
+                              TranslationPage(
+                                originalText: inputText,
+                                fromLanguage: fromLanguage,
+                                toLanguage: toLanguage,
+                              ),
+                          transitionsBuilder:
+                              (context, animation, secondaryAnimation, child) {
                             return SlideTransition(
                               position: animation.drive(
-                                Tween(begin: const Offset(1.0, 0.0), end: Offset.zero)
-                                    .chain(CurveTween(curve: Curves.easeOutCubic)),
+                                Tween(
+                                  begin: const Offset(1.0, 0.0),
+                                  end: Offset.zero,
+                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
                               ),
                               child: child,
                             );
@@ -314,7 +297,6 @@ class _HomePageState extends State<HomePage> {
                           transitionDuration: const Duration(milliseconds: 300),
                         ),
                       ),
-                      postAction: () async => await null,
                     );
                   },
                 ),
