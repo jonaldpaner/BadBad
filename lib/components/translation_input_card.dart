@@ -1,6 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'language_selector.dart'; // Make sure this import points to your actual LanguageSelector file.
+import 'language_selector.dart';
 
 class TranslationInputCard extends StatefulWidget {
   final String fromLanguage;
