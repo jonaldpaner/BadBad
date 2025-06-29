@@ -49,14 +49,14 @@ dependencies:
 
 flutter_native_splash:
   color: "#ffffff"
-  image: assets/applogo.png
+  image: assets/splashscreen.png
   android: true
   ios: false
   web: false
 
   android_12:
     color: "#ffffff"
-    image: assets/applogo.png
+    image: assets/splashscreen.png
 
 flutter_launcher_icons:
   android: "launcher_icon"
@@ -85,6 +85,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/applogo.png
+    - assets/splashscreen.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see
