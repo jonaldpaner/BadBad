@@ -18,6 +18,7 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
   bool isLoading = false;
   bool passwordVisible = false;
   bool confirmPasswordVisible = false;
+  String? loginError;
 
   final _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
@@ -54,6 +55,10 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
   }
 
   Future<void> submit() async {
+    setState(() {
+      loginError = null; // Reset before validating
+    });
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => isLoading = true);
@@ -83,19 +88,24 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
         );
       }
     } on FirebaseAuthException catch (e) {
-      String message = 'An error occurred. Please check your credentials.';
-      if (e.code == 'user-not-found') {
-        message = 'No user found for that email.';
-      } else if (e.code == 'wrong-password') {
-        message = 'Wrong password provided for that user.';
-      } else if (e.code == 'email-already-in-use') {
-        message = 'The email address is already in use by another account.';
-      } else if (e.code == 'weak-password') {
-        message = 'The password provided is too weak.';
-      } else if (e.code == 'invalid-email') {
-        message = 'The email address is not valid.';
+      if (isLogin) {
+        setState(() {
+          loginError = 'Incorrect username or password';
+        });
+        _formKey.currentState!.validate(); // Trigger re-validation to show the error under the field
+      } else {
+        String message = 'An error occurred.';
+
+        if (e.code == 'email-already-in-use') {
+          message = 'The email address is already in use by another account.';
+        } else if (e.code == 'weak-password') {
+          message = 'The password provided is too weak.';
+        } else if (e.code == 'invalid-email') {
+          message = 'The email address is not valid.';
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An unexpected error occurred: $e')),
@@ -181,11 +191,19 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                   if (value == null || value.isEmpty) {
                     return 'Please enter email';
                   }
-                  if (!RegExp(r'\S+@\S+\.\S+').hasMatch(value)) {
+
+                  if (!isLogin && !RegExp(r'\S+@\S+\.\S+').hasMatch(value)) {
                     return 'Enter a valid email';
                   }
+
+                  if (isLogin && loginError != null) {
+                    return loginError;
+                  }
+
                   return null;
                 },
+
+
                 onFieldSubmitted: (_) {
                   FocusScope.of(context).requestFocus(passwordFocus);
                 },
@@ -224,11 +242,19 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
                   if (value == null || value.isEmpty) {
                     return 'Please enter password';
                   }
-                  if (value.length < 6) {
+
+                  if (!isLogin && value.length < 6) {
                     return 'Password must be at least 6 characters';
                   }
+
+                  if (isLogin && loginError != null) {
+                    return loginError;
+                  }
+
                   return null;
                 },
+
+
                 onFieldSubmitted: (_) {
                   if (isLogin) {
                     submit();
