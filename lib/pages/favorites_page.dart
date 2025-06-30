@@ -214,7 +214,7 @@ class _FavoritesPageWidgetState extends State<FavoritesPageWidget> {
       centerTitle: true,
       actions: [
         IconButton(
-          icon: const Icon(Icons.more_vert, size: 25),
+          icon: const Icon(Icons.delete_sweep_outlined, size: 25),
           color: theme.iconTheme.color,
           onPressed: _clearAllFavorites,
           tooltip: 'Clear all favorites',

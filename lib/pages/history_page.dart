@@ -178,7 +178,7 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
       centerTitle: true,
       actions: [
         IconButton(
-          icon: const Icon(Icons.more_vert, size: 25),
+          icon: const Icon(Icons.delete_sweep_outlined, size: 25),
           color: theme.iconTheme.color,
           onPressed: _clearAllHistory,
           tooltip: 'Clear all history',
