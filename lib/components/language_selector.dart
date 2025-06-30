@@ -34,7 +34,9 @@ class _LanguageSelectorState extends State<LanguageSelector> {
         textAlign: TextAlign.center,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: theme.textTheme.bodyLarge,
+        style: theme.textTheme.bodyLarge?.copyWith(
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
@@ -61,7 +63,19 @@ class _LanguageSelectorState extends State<LanguageSelector> {
           const SizedBox(width: 12),
           GestureDetector(
             onTap: _swapLanguages,
-            child: Icon(Icons.swap_horiz, size: 22, color: theme.iconTheme.color),
+            child: Container(
+              width: 48.0, // Adjust as needed for the circle size and hitbox
+              height: 48.0, // Adjust as needed
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.transparent,
+                  width: 1.5, // Adjust border thickness
+                ),
+              ),
+              alignment: Alignment.center, // Center the icon within the circle
+              child: Icon(Icons.swap_horiz, size: 22, color: theme.iconTheme.color),
+            ),
           ),
           const SizedBox(width: 12),
           Flexible(
@@ -77,5 +91,4 @@ class _LanguageSelectorState extends State<LanguageSelector> {
       ),
     );
   }
-
 }

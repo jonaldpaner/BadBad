@@ -84,7 +84,7 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
         );
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Account created successfully! Please log in.')),
+          const SnackBar(content: Text('Account created successfully!'),duration: Duration(milliseconds: 800),),
         );
       }
     } on FirebaseAuthException catch (e) {

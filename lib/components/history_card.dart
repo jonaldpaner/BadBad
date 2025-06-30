@@ -100,7 +100,7 @@ class HistoryCardWidget extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8), // Made const
               ),
               child: IconButton(
-                icon: const Icon(Icons.more_vert_rounded, size: 20), // Made const
+                icon: const Icon(Icons.delete_outlined, size: 20), // Made const
                 color: theme.iconTheme.color,
                 padding: const EdgeInsets.symmetric(horizontal: 8), // Made const
                 onPressed: () async {

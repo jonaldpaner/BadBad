@@ -25,8 +25,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
-  static const double _restingPadding = 100.0;
-
   bool isTextFieldFocused = false;
 
   bool get _shouldShowLoginPrompt =>
@@ -48,11 +46,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     textFieldFocusNode.addListener(_onFocusChanged);
   }
 
+  double get _responsiveRestingPadding {
+    final screenHeight = MediaQuery.of(context).size.height;
+    return screenHeight * 0.12;
+  }
+
   void _onFocusChanged() {
-    setState(() {
-      isTextFieldFocused = textFieldFocusNode.hasFocus;
-    });
-    if (isTextFieldFocused) {
+    final hasFocus = textFieldFocusNode.hasFocus;
+    if (hasFocus != isTextFieldFocused) {
+      setState(() {
+        isTextFieldFocused = hasFocus;
+      });
+    }
+    if (hasFocus) {
       HapticFeedback.selectionClick();
     }
   }
@@ -66,12 +72,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
-  void _performActionAndManageFocus(VoidCallback action,
-      {Future<void> Function()? postAction}) async {
+  void _performActionAndManageFocus(
+    VoidCallback action, {
+    Future<void> Function()? postAction,
+  }) async {
     FocusScope.of(context).unfocus();
-    setState(() {
-      isTextFieldFocused = false;
-    });
+    if (isTextFieldFocused) {
+      setState(() {
+        isTextFieldFocused = false;
+      });
+    }
 
     textFieldFocusNode.canRequestFocus = false;
     action();
@@ -84,8 +94,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     textController.dispose();
     textFieldFocusNode.removeListener(_onFocusChanged);
     textFieldFocusNode.dispose();
-    super.dispose();
     WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
   }
 
   @override
@@ -94,8 +104,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final isDarkMode = theme.brightness == Brightness.dark;
 
     final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    final double bottomPadding =
-    keyboardHeight > 0 ? keyboardHeight + 20 : _restingPadding;
+    final double bottomPadding = keyboardHeight > 0
+        ? keyboardHeight + 20
+        : _responsiveRestingPadding;
 
     return Scaffold(
       key: scaffoldKey,
@@ -104,12 +115,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         onLogout: () async {
           try {
             await FirebaseAuth.instance.signOut();
-            print('User signed out.');
           } catch (e) {
-            print('Logout error: $e');
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Logout Error: $e')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text('Logout Error: $e')));
           } finally {
             if (scaffoldKey.currentState?.isDrawerOpen == true) {
               Navigator.of(context).pop();
@@ -124,47 +133,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         behavior: HitTestBehavior.opaque,
         onTap: () {
           FocusScope.of(context).unfocus();
-          setState(() {
-            isTextFieldFocused = false;
-          });
+          if (isTextFieldFocused) {
+            setState(() {
+              isTextFieldFocused = false;
+            });
+          }
         },
         child: Stack(
           children: [
-            if (!isDarkMode)
-              Positioned.fill(
-                child: Container(
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.bottomLeft,
-                      end: Alignment.topRight,
-                      colors: [
-                        Colors.white,
-                        Color(0xFFe2f3f9),
-                        Color(0xFFb8e1f1),
-                      ],
-                      stops: [0.0, 0.5, 1.0],
-                    ),
-                  ),
-                ),
-              ),
+            if (!isDarkMode) const LightBackground(),
 
             // AppBar Row
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
+            SafeArea(
               child: Padding(
-                padding: EdgeInsets.only(
-                  top: MediaQuery.of(context).padding.top + 8,
-                  left: 8,
-                  right: 8,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8.0,
+                  vertical: 8.0,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: Icon(Icons.menu_rounded,
-                          color: theme.iconTheme.color, size: 25),
+                      icon: Icon(
+                        Icons.menu_rounded,
+                        color: theme.iconTheme.color,
+                        size: 25,
+                      ),
                       onPressed: () {
                         _performActionAndManageFocus(() {
                           scaffoldKey.currentState?.openDrawer();
@@ -174,12 +168,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     Row(
                       children: [
                         IconButton(
-                          icon: Icon(Icons.help_outline,
-                              color: theme.iconTheme.color, size: 25),
+                          icon: Icon(
+                            Icons.help_outline,
+                            color: theme.iconTheme.color,
+                            size: 25,
+                          ),
                           onPressed: () {
-                            FocusScope.of(context).requestFocus(FocusNode());
                             _performActionAndManageFocus(
-                                  () => showDialog(
+                              () => showDialog(
                                 context: context,
                                 builder: (context) => const InstructionDialog(),
                               ),
@@ -187,23 +183,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           },
                         ),
                         IconButton(
-                          icon: Icon(Icons.person_outline,
-                              color: theme.iconTheme.color, size: 25),
+                          icon: Icon(
+                            Icons.person_outline,
+                            color: theme.iconTheme.color,
+                            size: 25,
+                          ),
                           onPressed: _shouldShowLoginPrompt
                               ? () {
-                            FocusScope.of(context)
-                                .requestFocus(FocusNode());
-                            _performActionAndManageFocus(
-                                  () => showDialog(
-                                context: context,
-                                builder: (context) => LoginSignUpDialog(
-                                  onLogin: () {
-                                    print('HomePage: User logged in.');
-                                  },
-                                ),
-                              ),
-                            );
-                          }
+                                  _performActionAndManageFocus(
+                                    () => showDialog(
+                                      context: context,
+                                      builder: (context) =>
+                                          LoginSignUpDialog(onLogin: () {}),
+                                    ),
+                                  );
+                                }
                               : null,
                         ),
                       ],
@@ -231,30 +225,43 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   textController: textController,
                   focusNode: textFieldFocusNode,
                   onCameraPressed: () async {
-                    _performActionAndManageFocus(() {}, postAction: () async {
-                      await Future.delayed(const Duration(milliseconds: 250));
-                      if (!mounted) return;
-                      Navigator.push(
-                        context,
-                        PageRouteBuilder(
-                          pageBuilder: (context, animation, secondaryAnimation) =>
-                          const CameraPage(),
-                          transitionsBuilder: (context, animation,
-                              secondaryAnimation, child) {
-                            return SlideTransition(
-                              position: animation.drive(
-                                Tween(
-                                  begin: const Offset(0.0, 1.0),
-                                  end: Offset.zero,
-                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
-                              ),
-                              child: child,
-                            );
-                          },
-                          transitionDuration: const Duration(milliseconds: 300),
-                        ),
-                      );
-                    });
+                    _performActionAndManageFocus(
+                      () {},
+                      postAction: () async {
+                        await Future.delayed(const Duration(milliseconds: 250));
+                        if (!mounted) return;
+                        Navigator.push(
+                          context,
+                          PageRouteBuilder(
+                            pageBuilder:
+                                (context, animation, secondaryAnimation) =>
+                                    const CameraPage(),
+                            transitionsBuilder:
+                                (
+                                  context,
+                                  animation,
+                                  secondaryAnimation,
+                                  child,
+                                ) {
+                                  return SlideTransition(
+                                    position: animation.drive(
+                                      Tween(
+                                        begin: const Offset(0.0, 1.0),
+                                        end: Offset.zero,
+                                      ).chain(
+                                        CurveTween(curve: Curves.easeOutCubic),
+                                      ),
+                                    ),
+                                    child: child,
+                                  );
+                                },
+                            transitionDuration: const Duration(
+                              milliseconds: 300,
+                            ),
+                          ),
+                        );
+                      },
+                    );
                     HapticFeedback.lightImpact();
                   },
                   onTranslatePressed: () {
@@ -273,27 +280,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
                     HapticFeedback.lightImpact();
                     _performActionAndManageFocus(
-                          () => Navigator.push(
+                      () => Navigator.push(
                         context,
                         PageRouteBuilder(
-                          pageBuilder: (context, animation, secondaryAnimation) =>
-                              TranslationPage(
-                                originalText: inputText,
-                                fromLanguage: fromLanguage,
-                                toLanguage: toLanguage,
-                              ),
+                          pageBuilder:
+                              (context, animation, secondaryAnimation) =>
+                                  TranslationPage(
+                                    originalText: inputText,
+                                    fromLanguage: fromLanguage,
+                                    toLanguage: toLanguage,
+                                  ),
                           transitionsBuilder:
                               (context, animation, secondaryAnimation, child) {
-                            return SlideTransition(
-                              position: animation.drive(
-                                Tween(
-                                  begin: const Offset(1.0, 0.0),
-                                  end: Offset.zero,
-                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
-                              ),
-                              child: child,
-                            );
-                          },
+                                return SlideTransition(
+                                  position: animation.drive(
+                                    Tween(
+                                      begin: const Offset(1.0, 0.0),
+                                      end: Offset.zero,
+                                    ).chain(
+                                      CurveTween(curve: Curves.easeOutCubic),
+                                    ),
+                                  ),
+                                  child: child,
+                                );
+                              },
                           transitionDuration: const Duration(milliseconds: 300),
                         ),
                       ),
@@ -303,6 +313,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// Extracted gradient widget
+class LightBackground extends StatelessWidget {
+  const LightBackground({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.bottomLeft,
+          end: Alignment.topRight,
+          colors: [Colors.white, Color(0xFFe2f3f9), Color(0xFFb8e1f1)],
+          stops: [0.0, 0.5, 1.0],
         ),
       ),
     );
