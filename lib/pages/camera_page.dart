@@ -35,7 +35,7 @@ class _CameraPageState extends State<CameraPage> {
   bool _hasCapturedImage = false;
   bool _isFromGallery = false;
   final TransformationController _transformationController =
-  TransformationController();
+      TransformationController();
 
   Size? _previewSize;
   BuildContext? _customPaintContext;
@@ -47,6 +47,7 @@ class _CameraPageState extends State<CameraPage> {
   TextBox? _leftHandleWord;
   TextBox? _rightHandleWord;
 
+  static const int _maxTranslationCharacters = 70;
 
   @override
   void initState() {
@@ -90,9 +91,7 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Future<void> _pickImageFromGallery() async {
-    _resetSelectionState(
-      shouldReinitializeCamera: false,
-    );
+    _resetSelectionState(shouldReinitializeCamera: false);
 
     setState(() {
       _isLoading = true;
@@ -159,9 +158,10 @@ class _CameraPageState extends State<CameraPage> {
         _hasCapturedImage = true;
         _isLoading = false;
         _isFromGallery = true;
-        _transformationController.value =
-            Matrix4.identity();
-        print('Original Image Size (set for capture AFTER setState): $_originalImageSize');
+        _transformationController.value = Matrix4.identity();
+        print(
+          'Original Image Size (set for capture AFTER setState): $_originalImageSize',
+        );
       });
     } else {
       setState(() {
@@ -173,9 +173,7 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   Future<void> _captureAndRecognizeText() async {
-    _resetSelectionState(
-      shouldReinitializeCamera: false,
-    );
+    _resetSelectionState(shouldReinitializeCamera: false);
 
     setState(() {
       _isLoading = true;
@@ -199,7 +197,9 @@ class _CameraPageState extends State<CameraPage> {
           decodedImage.width.toDouble(),
           decodedImage.height.toDouble(),
         );
-        print('Calculated origSize: $origSize'); // Print origSize before assignment
+        print(
+          'Calculated origSize: $origSize',
+        ); // Print origSize before assignment
 
         List<TextBox> detectedBoxes = [];
         for (var block in recog.blocks) {
@@ -238,9 +238,10 @@ class _CameraPageState extends State<CameraPage> {
           _hasCapturedImage = true;
           _isLoading = false;
           _isFromGallery = false;
-          _transformationController.value =
-              Matrix4.identity();
-          print('Original Image Size (set for capture AFTER setState): $_originalImageSize');
+          _transformationController.value = Matrix4.identity();
+          print(
+            'Original Image Size (set for capture AFTER setState): $_originalImageSize',
+          );
         });
       }
     } catch (e) {
@@ -261,8 +262,7 @@ class _CameraPageState extends State<CameraPage> {
     _capturedImageFile = null;
     _hasCapturedImage = false;
     _isFromGallery = false;
-    _transformationController.value =
-        Matrix4.identity();
+    _transformationController.value = Matrix4.identity();
     _fixedAnchorWord = null;
     _isDraggingLeftHandleCurrent = false;
     _currentDraggingHandleScreenPosition = null;
@@ -289,13 +289,13 @@ class _CameraPageState extends State<CameraPage> {
     });
 
     final Offset tapInOriginalImageCoords =
-    TextRecognitionHelpers.toOriginalImageCoordinates(
-      localPos: pos,
-      previewSize: previewSize,
-      originalImageSize: _originalImageSize,
-      transformationController: _transformationController,
-      fit: BoxFit.cover,
-    );
+        TextRecognitionHelpers.toOriginalImageCoordinates(
+          localPos: pos,
+          previewSize: previewSize,
+          originalImageSize: _originalImageSize,
+          transformationController: _transformationController,
+          fit: BoxFit.cover,
+        );
 
     TextBox? tappedWord;
     for (final b in _textBoxes) {
@@ -360,7 +360,7 @@ class _CameraPageState extends State<CameraPage> {
     }
 
     final RenderBox renderBox =
-    _customPaintContext!.findRenderObject() as RenderBox;
+        _customPaintContext!.findRenderObject() as RenderBox;
     final Offset localPos = renderBox.globalToLocal(details.globalPosition);
 
     setState(() {
@@ -368,24 +368,28 @@ class _CameraPageState extends State<CameraPage> {
     });
 
     final Offset currentDragPointInOriginalCoords =
-    TextRecognitionHelpers.toOriginalImageCoordinates(
-      localPos: localPos,
-      previewSize: _previewSize!,
-      originalImageSize: _originalImageSize,
-      transformationController: _transformationController,
-      fit: BoxFit.cover,
-    );
+        TextRecognitionHelpers.toOriginalImageCoordinates(
+          localPos: localPos,
+          previewSize: _previewSize!,
+          originalImageSize: _originalImageSize,
+          transformationController: _transformationController,
+          fit: BoxFit.cover,
+        );
 
     final List<TextBox> allWords = _textBoxes.where((b) => b.isWord).toList();
 
-    TextBox? newTargetWord =
-    _getClosestWord(currentDragPointInOriginalCoords, allWords);
+    TextBox? newTargetWord = _getClosestWord(
+      currentDragPointInOriginalCoords,
+      allWords,
+    );
 
     if (newTargetWord == null) {
       return;
     }
 
-    final List<TextBox> wordsInReadingOrder = _sortWordsByReadingOrder(allWords);
+    final List<TextBox> wordsInReadingOrder = _sortWordsByReadingOrder(
+      allWords,
+    );
 
     final int fixedAnchorIndex = wordsInReadingOrder.indexOf(_fixedAnchorWord!);
     final int targetWordIndex = wordsInReadingOrder.indexOf(newTargetWord);
@@ -404,8 +408,12 @@ class _CameraPageState extends State<CameraPage> {
 
     final sortedNewSelection = _sortWordsByReadingOrder(newSelection);
 
-    TextBox? newLeftHandleWord = sortedNewSelection.isNotEmpty ? sortedNewSelection.first : null;
-    TextBox? newRightHandleWord = sortedNewSelection.isNotEmpty ? sortedNewSelection.last : null;
+    TextBox? newLeftHandleWord = sortedNewSelection.isNotEmpty
+        ? sortedNewSelection.first
+        : null;
+    TextBox? newRightHandleWord = sortedNewSelection.isNotEmpty
+        ? sortedNewSelection.last
+        : null;
 
     if (!TextRecognitionHelpers.listEquals(_selectedWords, newSelection) ||
         _leftHandleWord != newLeftHandleWord ||
@@ -418,19 +426,60 @@ class _CameraPageState extends State<CameraPage> {
     }
   }
 
+  void _showTranslationLimitDialog(
+    BuildContext context,
+    String fullText,
+    int limit,
+  ) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Translation Limit'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(
+                  'The translation service currently supports a maximum of $limit characters.',
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('OK',style: TextStyle(color: Color(0xFF219EBC)),
+        ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _gotoTranslate(String txt) {
+    String textToTranslate = txt;
+    bool truncated = false; // Keep truncated flag for the dialog
+
+    if (textToTranslate.length > _maxTranslationCharacters) {
+      _showTranslationLimitDialog(context, txt, _maxTranslationCharacters);
+      return;
+    }
+
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => TranslationPage(
-          originalText: txt,
+          originalText: textToTranslate,
           fromLanguage: _fromLanguage,
           toLanguage: _toLanguage,
         ),
       ),
     );
   }
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -445,11 +494,14 @@ class _CameraPageState extends State<CameraPage> {
         BoxFit.cover,
       );
       final List<Offset> transformedPoints =
-      TextRecognitionHelpers.transformPoints(
-          scaledPoints, _transformationController.value);
+          TextRecognitionHelpers.transformPoints(
+            scaledPoints,
+            _transformationController.value,
+          );
 
-      transformedFixedAnchorRect =
-          TextRecognitionHelpers.calculateBoundingRect(transformedPoints);
+      transformedFixedAnchorRect = TextRecognitionHelpers.calculateBoundingRect(
+        transformedPoints,
+      );
     }
 
     Rect? currentSelectionRect;
@@ -467,11 +519,14 @@ class _CameraPageState extends State<CameraPage> {
       );
 
       final List<Offset> transformedAllPoints =
-      TextRecognitionHelpers.transformPoints(
-          scaledAllPoints, _transformationController.value);
+          TextRecognitionHelpers.transformPoints(
+            scaledAllPoints,
+            _transformationController.value,
+          );
 
-      currentSelectionRect =
-          TextRecognitionHelpers.calculateBoundingRect(transformedAllPoints);
+      currentSelectionRect = TextRecognitionHelpers.calculateBoundingRect(
+        transformedAllPoints,
+      );
     }
 
     return Scaffold(
@@ -535,143 +590,153 @@ class _CameraPageState extends State<CameraPage> {
                           ),
                         ),
                       )
-                    else
-                      ...[
-                        Positioned.fill(
-                          child: CameraDisplayArea(
+                    else ...[
+                      Positioned.fill(
+                        child: CameraDisplayArea(
+                          isCameraInitialized: _isCameraInitialized,
+                          capturedImageFile: _capturedImageFile,
+                          cameraController: _cameraService.controller,
+                          transformationController: _transformationController,
+                          textBoxes: _textBoxes,
+                          originalImageSize: _originalImageSize,
+                          selectedWords: _selectedWords,
+                          currentSelectionRect: currentSelectionRect,
+                          onCameraScaleStart: (details) =>
+                              _baseZoom = _currentZoom,
+                          onCameraScaleUpdate: (scale) async {
+                            var z = (_baseZoom * scale).clamp(
+                              _minZoom,
+                              _maxZoom,
+                            );
+                            if (z != _currentZoom) {
+                              _currentZoom = z;
 
-                            isCameraInitialized: _isCameraInitialized,
-                            capturedImageFile: _capturedImageFile,
-                            cameraController: _cameraService.controller,
-                            transformationController: _transformationController,
-                            textBoxes: _textBoxes,
-                            originalImageSize: _originalImageSize,
-                            selectedWords: _selectedWords,
-                            currentSelectionRect: currentSelectionRect,
-                            onCameraScaleStart: (details) =>
-                            _baseZoom = _currentZoom,
-                            onCameraScaleUpdate: (scale) async {
-                              var z = (_baseZoom * scale).clamp(
-                                _minZoom,
-                                _maxZoom,
-                              );
-                              if (z != _currentZoom) {
-                                _currentZoom = z;
-
-                                await _cameraService.setZoomLevel(z);
-                              }
-                            },
-
-                            onTapUp: _onTapUp,
-                            onPreviewSizeAndContextChanged: (size, context) {
-                              setState(() {
-                                _previewSize = size;
-                                _customPaintContext = context;
-                              });
-                            },
-                          ),
-                        ),
-                        CameraControlBar(
-                          hasCapturedImage: _hasCapturedImage,
-                          isFromGallery: _isFromGallery,
-                          isFlashOn: _cameraService.isFlashOn,
-                          onPickImage: _pickImageFromGallery,
-                          onCapture: _captureAndRecognizeText,
-                          onToggleFlash: () async {
-                            await _cameraService.toggleFlash();
-                            setState(() {});
+                              await _cameraService.setZoomLevel(z);
+                            }
+                          },
+                          onTapUp: _onTapUp,
+                          onPreviewSizeAndContextChanged: (size, context) {
+                            setState(() {
+                              _previewSize = size;
+                              _customPaintContext = context;
+                            });
                           },
                         ),
-                        // Conditionally display the tip
-                        if (!_hasCapturedImage) // Only show if no image is captured
-                          Positioned(
-                            bottom: 100,
-                            left: 0,
-                            right: 0,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              margin: EdgeInsets.symmetric(horizontal: 20),
-                              decoration: BoxDecoration(
-                                color: Colors.black54,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                "Tip: For best results, align text as straight as possible!",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white, fontSize: 14),
+                      ),
+                      CameraControlBar(
+                        hasCapturedImage: _hasCapturedImage,
+                        isFromGallery: _isFromGallery,
+                        isFlashOn: _cameraService.isFlashOn,
+                        onPickImage: _pickImageFromGallery,
+                        onCapture: _captureAndRecognizeText,
+                        onToggleFlash: () async {
+                          await _cameraService.toggleFlash();
+                          setState(() {});
+                        },
+                      ),
+                      // Conditionally display the tip
+                      if (!_hasCapturedImage) // Only show if no image is captured
+                        Positioned(
+                          bottom: 100,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            margin: const EdgeInsets.symmetric(horizontal: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text(
+                              "Tip: For best results, align text as straight as possible!",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
                               ),
                             ),
                           ),
-                        TextSelectionOverlay(
-                          selectedWords: _selectedWords,
-                          capturedImageFile: _capturedImageFile,
-                          previewSize: _previewSize,
-                          originalImageSize: _originalImageSize,
-                          transformationController: _transformationController,
-                          fixedAnchorWord: _fixedAnchorWord,
-                          isDraggingLeftHandleCurrent:
-                          _isDraggingLeftHandleCurrent,
-                          transformedFixedAnchorRect:
-                          transformedFixedAnchorRect,
-                          currentDraggingHandleScreenPosition:
-                          _currentDraggingHandleScreenPosition,
-                          leftHandleWord: _leftHandleWord,
-                          rightHandleWord: _rightHandleWord,
-                          onHandlePanStartLeft: (details) {
-                            if (_selectedWords.isNotEmpty) {
-                              setState(() {
-                                _fixedAnchorWord = _rightHandleWord;
-                                _isDraggingLeftHandleCurrent = true;
-                                final RenderBox renderBox = _customPaintContext!
-                                    .findRenderObject() as RenderBox;
-                                _currentDraggingHandleScreenPosition =
-                                    renderBox.globalToLocal(
-                                        details.globalPosition);
-                              });
-                            }
-                          },
-                          onHandlePanStartRight: (details) {
-                            if (_selectedWords.isNotEmpty) {
-                              setState(() {
-                                _fixedAnchorWord = _leftHandleWord;
-                                _isDraggingLeftHandleCurrent = false;
-                                final RenderBox renderBox = _customPaintContext!
-                                    .findRenderObject() as RenderBox;
-                                _currentDraggingHandleScreenPosition =
-                                    renderBox.globalToLocal(
-                                        details.globalPosition);
-                              });
-                            }
-                          },
-                          onHandlePanUpdate: (details) {
-                            _updateSelectionBasedOnHandleDrag(details);
-                          },
-                          onHandlePanEnd: (details) {
+                        ),
+                      TextSelectionOverlay(
+                        selectedWords: _selectedWords,
+                        capturedImageFile: _capturedImageFile,
+                        previewSize: _previewSize,
+                        originalImageSize: _originalImageSize,
+                        transformationController: _transformationController,
+                        fixedAnchorWord: _fixedAnchorWord,
+                        isDraggingLeftHandleCurrent:
+                            _isDraggingLeftHandleCurrent,
+                        transformedFixedAnchorRect: transformedFixedAnchorRect,
+                        currentDraggingHandleScreenPosition:
+                            _currentDraggingHandleScreenPosition,
+                        leftHandleWord: _leftHandleWord,
+                        rightHandleWord: _rightHandleWord,
+                        onHandlePanStartLeft: (details) {
+                          if (_selectedWords.isNotEmpty) {
                             setState(() {
-                              if (_selectedWords.isEmpty) {
-                                _fixedAnchorWord = null;
-                                _isDraggingLeftHandleCurrent = false;
-                                _currentDraggingHandleScreenPosition = null;
-                                _leftHandleWord = null;
-                                _rightHandleWord = null;
-                                return;
-                              }
-
-                              final sorted = _sortWordsByReadingOrder(_selectedWords);
-
-                              _leftHandleWord = sorted.isNotEmpty ? sorted.first : null;
-                              _rightHandleWord = sorted.isNotEmpty ? sorted.last : null;
-
+                              _fixedAnchorWord = _rightHandleWord;
+                              _isDraggingLeftHandleCurrent = true;
+                              final RenderBox renderBox =
+                                  _customPaintContext!.findRenderObject()
+                                      as RenderBox;
+                              _currentDraggingHandleScreenPosition = renderBox
+                                  .globalToLocal(details.globalPosition);
+                            });
+                          }
+                        },
+                        onHandlePanStartRight: (details) {
+                          if (_selectedWords.isNotEmpty) {
+                            setState(() {
+                              _fixedAnchorWord = _leftHandleWord;
+                              _isDraggingLeftHandleCurrent = false;
+                              final RenderBox renderBox =
+                                  _customPaintContext!.findRenderObject()
+                                      as RenderBox;
+                              _currentDraggingHandleScreenPosition = renderBox
+                                  .globalToLocal(details.globalPosition);
+                            });
+                          }
+                        },
+                        onHandlePanUpdate: (details) {
+                          _updateSelectionBasedOnHandleDrag(details);
+                        },
+                        onHandlePanEnd: (details) {
+                          setState(() {
+                            if (_selectedWords.isEmpty) {
                               _fixedAnchorWord = null;
                               _isDraggingLeftHandleCurrent = false;
                               _currentDraggingHandleScreenPosition = null;
-                            });
-                          },
-                          onTranslate: (text) {
-                            _gotoTranslate(text);
-                          },
-                        ),
-                      ],
+                              _leftHandleWord = null;
+                              _rightHandleWord = null;
+                              return;
+                            }
+
+                            final sorted = _sortWordsByReadingOrder(
+                              _selectedWords,
+                            );
+
+                            _leftHandleWord = sorted.isNotEmpty
+                                ? sorted.first
+                                : null;
+                            _rightHandleWord = sorted.isNotEmpty
+                                ? sorted.last
+                                : null;
+
+                            _fixedAnchorWord = null;
+                            _isDraggingLeftHandleCurrent = false;
+                            _currentDraggingHandleScreenPosition = null;
+                          });
+                        },
+                        onTranslate: (text) {
+                          _gotoTranslate(text);
+                        },
+                        // Pass the maxTranslationCharacters to the overlay
+                        maxTranslationCharacters: _maxTranslationCharacters,
+                      ),
+                    ],
                   ],
                 ),
               ),
