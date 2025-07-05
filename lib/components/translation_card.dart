@@ -6,6 +6,7 @@ class TranslationCard extends StatelessWidget {
   final VoidCallback? onCopyPressed;
   final VoidCallback? onFavoritePressed;
   final bool isFavorited;
+  final bool isLoading; // New property to indicate loading state for the text
 
   const TranslationCard({
     super.key,
@@ -14,6 +15,7 @@ class TranslationCard extends StatelessWidget {
     this.onCopyPressed,
     this.onFavoritePressed,
     this.isFavorited = false,
+    this.isLoading = false, // Default to false
   });
 
   @override
@@ -52,13 +54,46 @@ class TranslationCard extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               return ConstrainedBox(
-                constraints: const BoxConstraints( // Made const
+                constraints: const BoxConstraints(
                   minHeight: 200, // minimum height to push text down a bit
                 ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20), // Made const
-                  child: Text(
-                    text, // Correctly refers to the widget's text property
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: isLoading // Check the new isLoading flag
+                      ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Skeleton lines
+                      Container(
+                        width: double.infinity,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.onSurface.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.onSurface.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        width: constraints.maxWidth * 0.7, // Shorter last line
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.onSurface.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  )
+                      : Text(
+                    text,
                     textAlign: TextAlign.justify,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       height: 1.5,

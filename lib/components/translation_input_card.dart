@@ -99,7 +99,7 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
                     filled: true,
                     fillColor: isDark
                         ? Colors.grey[900]
-                        : const Color.fromRGBO(230, 234, 237, 1),
+                        : const Color(0xFFEBEEF1),
                     border: const OutlineInputBorder(
                       borderRadius: BorderRadius.all(Radius.circular(12)),
                       borderSide: BorderSide.none,
