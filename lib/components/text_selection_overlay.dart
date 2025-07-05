@@ -334,8 +334,12 @@ class TextSelectionOverlay extends StatelessWidget {
 
     double topPositionAbove = transformedAndScaledRectForActionBar.top - translateButtonApproxHeight - verticalPadding;
 
-    final double appBarAndStatusBarHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
-    final double topThreshold = appBarAndStatusBarHeight + 10.0;
+    // Use previewSize.height as the effective boundary for clamping
+    final double previewAreaHeight = previewSize!.height;
+    // The top threshold should still consider the app bar/status bar if applicable to the overall layout
+    // but the clamping for positioning within the preview area uses previewAreaHeight.
+    final double topThreshold = kToolbarHeight + MediaQuery.of(context).padding.top + 10.0;
+
 
     double actionBarTop;
 
@@ -343,14 +347,18 @@ class TextSelectionOverlay extends StatelessWidget {
     final double handleClearance = handleOverlapHeight + 5.0;
 
     if (topPositionAbove < topThreshold) {
+      // Position below the selection
       actionBarTop = transformedAndScaledRectForActionBar.bottom + verticalPadding + handleClearance;
 
-      final double screenHeight = MediaQuery.of(context).size.height;
-      if (actionBarTop + translateButtonApproxHeight > screenHeight - 10.0) {
-        actionBarTop = screenHeight - translateButtonApproxHeight - 10.0;
+      // Clamp the bottom position using previewAreaHeight
+      if (actionBarTop + translateButtonApproxHeight > previewAreaHeight - 10.0) {
+        actionBarTop = previewAreaHeight - translateButtonApproxHeight - 10.0;
       }
     } else {
+      // Position above the selection
       actionBarTop = topPositionAbove;
+      // Also clamp the top position to ensure it doesn't go above the preview area
+      actionBarTop = max(topThreshold, actionBarTop);
     }
 
     double actionBarLeft = transformedAndScaledRectForActionBar.left + transformedAndScaledRectForActionBar.width / 2 - 70; // Adjusted for wider button
