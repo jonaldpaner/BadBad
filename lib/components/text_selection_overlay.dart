@@ -108,10 +108,10 @@ class _DragHandleShapePainter extends CustomPainter {
 
 class TextSelectionOverlay extends StatelessWidget {
   final List<TextBox> selectedWords;
-  final File? capturedImageFile; // Used to determine if it's a captured image
+  final File? capturedImageFile;
   final Size? previewSize;
   final Size originalImageSize;
-  final TransformationController transformationController; // Still needed for live camera zoom
+  final TransformationController transformationController;
   final TextBox? fixedAnchorWord;
   final bool isDraggingLeftHandleCurrent;
   final Rect? transformedFixedAnchorRect;
@@ -123,6 +123,7 @@ class TextSelectionOverlay extends StatelessWidget {
   final void Function(DragUpdateDetails) onHandlePanUpdate;
   final void Function(DragEndDetails) onHandlePanEnd;
   final void Function(String) onTranslate;
+  final int maxTranslationCharacters;
 
   const TextSelectionOverlay({
     super.key,
@@ -136,12 +137,13 @@ class TextSelectionOverlay extends StatelessWidget {
     this.transformedFixedAnchorRect,
     this.currentDraggingHandleScreenPosition,
     this.leftHandleWord,
-    this.rightHandleWord,
+    required this.rightHandleWord, // Ensure this is not null if used
     required this.onHandlePanStartLeft,
     required this.onHandlePanStartRight,
     required this.onHandlePanUpdate,
     required this.onHandlePanEnd,
     required this.onTranslate,
+    required this.maxTranslationCharacters,
   });
 
   Widget _dragHandle(bool isLeft, Offset currentPosition) {
@@ -227,7 +229,6 @@ class TextSelectionOverlay extends StatelessWidget {
 
         targetScreenX = originalAnchorPoint.dx * scale + offsetX;
         targetScreenY = originalAnchorPoint.dy * scale + offsetY;
-
       } else {
         // For live camera or other cases, use the transformationController
         // First scale the point based on BoxFit.cover to the preview area
@@ -242,7 +243,8 @@ class TextSelectionOverlay extends StatelessWidget {
         );
 
         // Then apply the InteractiveViewer's transformation matrix
-        final transformedPoint = MatrixUtils.transformPoint(transformationController.value, scaledPointPreTransform);
+        final transformedPoint =
+        MatrixUtils.transformPoint(transformationController.value, scaledPointPreTransform);
         targetScreenX = transformedPoint.dx;
         targetScreenY = transformedPoint.dy;
       }
@@ -272,44 +274,41 @@ class TextSelectionOverlay extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    // Calculate the overall combined rect in original image coordinates
     final Rect combinedRectOriginal = selectedWords.fold<Rect?>(
       null,
           (rect, word) => rect == null ? word.rect : rect.expandToInclude(word.rect),
     )!;
 
-    Rect transformedAndScaledRectForActionBar; // This will be the rect on screen for the action bar
+    Rect transformedAndScaledRectForActionBar;
 
-    // Determine how to scale/transform the combined rect based on image source
     if (capturedImageFile != null) {
-      // For captured images, manually apply BoxFit.cover scaling to get screen rect
       final FittedSizes fittedSizes = applyBoxFit(BoxFit.cover, originalImageSize, previewSize!);
       final double scale = fittedSizes.destination.width / fittedSizes.source.width;
       final double offsetX = (previewSize!.width - originalImageSize.width * scale) / 2;
       final double offsetY = (previewSize!.height - originalImageSize.height * scale) / 2;
 
-      // Apply the scaling and offset to the combinedRectOriginal
       transformedAndScaledRectForActionBar = Rect.fromPoints(
-        Offset(combinedRectOriginal.topLeft.dx * scale + offsetX, combinedRectOriginal.topLeft.dy * scale + offsetY),
-        Offset(combinedRectOriginal.bottomRight.dx * scale + offsetX, combinedRectOriginal.bottomRight.dy * scale + offsetY),
+        Offset(
+            combinedRectOriginal.topLeft.dx * scale + offsetX,
+            combinedRectOriginal.topLeft.dy * scale + offsetY),
+        Offset(
+            combinedRectOriginal.bottomRight.dx * scale + offsetX,
+            combinedRectOriginal.bottomRight.dy * scale + offsetY),
       );
-
     } else {
-      // For live camera, use the transformationController
-      // First scale the combined rect from original to preview size using BoxFit.cover logic
       final scaledRectPreTransform = BoundingBoxPainter.scaleRectForFit(
         combinedRectOriginal,
         originalImageSize,
         previewSize!,
         BoxFit.cover,
       );
-      // Then apply the InteractiveViewer's transformation matrix
-      transformedAndScaledRectForActionBar = MatrixUtils.transformRect(transformationController.value, scaledRectPreTransform);
+      transformedAndScaledRectForActionBar =
+          MatrixUtils.transformRect(transformationController.value, scaledRectPreTransform);
     }
 
     final leftHandlePos = _calculateHandlePosition(
       isLeftHandle: true,
-      allSelectedWords: selectedWords, // Pass all selected words
+      allSelectedWords: selectedWords,
       draggingScreenPosition: isDraggingLeftHandleCurrent ? currentDraggingHandleScreenPosition : null,
       specificLeftHandleWord: leftHandleWord,
       specificRightHandleWord: rightHandleWord,
@@ -320,10 +319,10 @@ class TextSelectionOverlay extends StatelessWidget {
     );
     final rightHandlePos = _calculateHandlePosition(
       isLeftHandle: false,
-      allSelectedWords: selectedWords, // Pass all selected words
+      allSelectedWords: selectedWords,
       draggingScreenPosition: !isDraggingLeftHandleCurrent ? currentDraggingHandleScreenPosition : null,
-      specificLeftHandleWord: leftHandleWord,
-      specificRightHandleWord: rightHandleWord,
+      specificLeftHandleWord: rightHandleWord, // Fixed: Should use rightHandleWord for right handle
+      specificRightHandleWord: rightHandleWord, // Fixed: Should use rightHandleWord for right handle
       originalImageSize: originalImageSize,
       previewSize: previewSize!,
       transformationController: transformationController,
@@ -333,7 +332,6 @@ class TextSelectionOverlay extends StatelessWidget {
     final double translateButtonApproxHeight = 40.0;
     final double verticalPadding = 15.0;
 
-    // Use the correctly calculated rect for the action bar positioning
     double topPositionAbove = transformedAndScaledRectForActionBar.top - translateButtonApproxHeight - verticalPadding;
 
     final double appBarAndStatusBarHeight = kToolbarHeight + MediaQuery.of(context).padding.top;
@@ -355,10 +353,13 @@ class TextSelectionOverlay extends StatelessWidget {
       actionBarTop = topPositionAbove;
     }
 
-    double actionBarLeft = transformedAndScaledRectForActionBar.left + transformedAndScaledRectForActionBar.width / 2 - 60;
-
+    double actionBarLeft = transformedAndScaledRectForActionBar.left + transformedAndScaledRectForActionBar.width / 2 - 70; // Adjusted for wider button
     actionBarLeft = max(0.0, actionBarLeft);
-    actionBarLeft = min(MediaQuery.of(context).size.width - 120, actionBarLeft);
+    actionBarLeft = min(MediaQuery.of(context).size.width - 140, actionBarLeft); // Adjusted for wider button
+
+    final String selectedText = selectedWords.map((e) => e.text).join(' ');
+    final int charCount = selectedText.length;
+    final bool isOverLimit = charCount > maxTranslationCharacters;
 
     return Stack(
       children: [
@@ -382,38 +383,61 @@ class TextSelectionOverlay extends StatelessWidget {
             child: _dragHandle(false, rightHandlePos),
           ),
         ),
-        if (currentDraggingHandleScreenPosition == null)
-          Positioned(
-            left: actionBarLeft,
-            top: actionBarTop,
-            child: Material(
-              elevation: 6,
-              borderRadius: BorderRadius.circular(20),
-              color: Colors.transparent,
-              child: GestureDetector(
-                onTap: () {
-                  final text = selectedWords.map((e) => e.text).join(' ');
-                  onTranslate(text);
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    "Translate",
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white
-                          : Colors.black,
+        // Removed the `if (currentDraggingHandleScreenPosition == null)` condition
+        Positioned(
+          left: actionBarLeft,
+          top: actionBarTop,
+          child: Material(
+            elevation: 6,
+            borderRadius: BorderRadius.circular(20),
+            color: Colors.transparent,
+            child: GestureDetector(
+              onTap: () {
+                final text = selectedWords.map((e) => e.text).join(' ');
+                onTranslate(text);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardColor,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Translate",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white
+                            : Colors.black,
+                      ),
                     ),
-                  ),
+                    if (selectedWords.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: isOverLimit ? Colors.red.withOpacity(0.8) : Colors.blue.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          '$charCount/$maxTranslationCharacters',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ),
           ),
+        ),
       ],
     );
   }
