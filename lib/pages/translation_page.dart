@@ -1,4 +1,3 @@
-// pages/translation_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ahhhtest/components/translation_card.dart'; // Ensure this path is correct
@@ -14,7 +13,7 @@ class TranslationPage extends StatefulWidget {
   final String? initialTranslatedText;
   final bool? initialIsOriginalFavorited;
   final bool? initialIsTranslatedFavorited;
-  final String? documentId; // This documentId is crucial for linking history and favorites
+  final String? documentId;
 
   const TranslationPage({
     Key? key,
@@ -32,13 +31,12 @@ class TranslationPage extends StatefulWidget {
 }
 
 class _TranslationPageState extends State<TranslationPage> {
-  // These states reflect the current favorite status in the UI
   bool _isOriginalFavorited = false;
   bool _isTranslatedFavorited = false;
 
-  String? _currentTranslationDocId; // Stores the document ID for the current translation
+  String? _currentTranslationDocId;
   String _translatedText = '';
-  bool _isLoadingTranslation = true;
+  bool _isLoadingTranslation = true; // Keep this state
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -46,22 +44,18 @@ class _TranslationPageState extends State<TranslationPage> {
   @override
   void initState() {
     super.initState();
-    // Initialize state from widget properties
     _currentTranslationDocId = widget.documentId;
     _isOriginalFavorited = widget.initialIsOriginalFavorited ?? false;
     _isTranslatedFavorited = widget.initialIsTranslatedFavorited ?? false;
 
-    // Decide whether to fetch a new translation or use the initial one
     if (widget.initialTranslatedText != null && widget.initialTranslatedText!.isNotEmpty) {
       _translatedText = widget.initialTranslatedText!;
-      _isLoadingTranslation = false;
+      _isLoadingTranslation = false; // Not loading if initial text is provided
     } else {
-      // If no initial translation, fetch it and save to history
       _fetchNewTranslationAndSaveHistory();
     }
   }
 
-  // Fetches translation from API
   Future<String> _fetchTranslation(String message) async {
     String? apiEndpoint;
     if (widget.fromLanguage == 'Ata Manobo') {
@@ -88,7 +82,6 @@ class _TranslationPageState extends State<TranslationPage> {
     }
   }
 
-  // Saves a brand new translation to history
   Future<void> _saveNewTranslationHistory(String originalText, String translatedText) async {
     final User? user = _auth.currentUser;
 
@@ -104,11 +97,10 @@ class _TranslationPageState extends State<TranslationPage> {
           'fromLanguage': widget.fromLanguage,
           'toLanguage': widget.toLanguage,
           'timestamp': FieldValue.serverTimestamp(),
-          'isOriginalFavorited': false, // Newly saved translation starts as not favorited
-          'isTranslatedFavorited': false, // Newly saved translation starts as not favorited
-          'type': 'text', // Assuming text type for now
+          'isOriginalFavorited': false,
+          'isTranslatedFavorited': false,
+          'type': 'text',
         });
-        // Store the newly created document ID
         _currentTranslationDocId = docRef.id;
       } catch (e) {
         print('Error saving new translation to history: $e');
@@ -116,11 +108,9 @@ class _TranslationPageState extends State<TranslationPage> {
     }
   }
 
-  // --- NEW/UPDATED CORE LOGIC FOR FAVORITING ---
   Future<void> _toggleFavoriteStatus(bool isOriginal) async {
     final User? user = _auth.currentUser;
 
-    // Ensure user is logged in and we have a document ID
     if (user == null || _currentTranslationDocId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please log in or save translation to favorite.')),
@@ -128,7 +118,6 @@ class _TranslationPageState extends State<TranslationPage> {
       return;
     }
 
-    // References to the documents in both collections
     final DocumentReference historyDocRef = _firestore
         .collection('users')
         .doc(user.uid)
@@ -139,9 +128,8 @@ class _TranslationPageState extends State<TranslationPage> {
         .collection('users')
         .doc(user.uid)
         .collection('favorites')
-        .doc(_currentTranslationDocId!); // Use the same ID for favorites
+        .doc(_currentTranslationDocId!);
 
-    // Determine the new favorite status based on which part is being toggled
     bool newOriginalFavoriteStatus = _isOriginalFavorited;
     bool newTranslatedFavoriteStatus = _isTranslatedFavorited;
 
@@ -151,39 +139,31 @@ class _TranslationPageState extends State<TranslationPage> {
       newTranslatedFavoriteStatus = !newTranslatedFavoriteStatus;
     }
 
-    // Use a batch write for atomicity: either all updates succeed or none do.
     WriteBatch batch = _firestore.batch();
 
     try {
-      // 1. Update the favorite status in the HISTORY document
       batch.update(historyDocRef, {
         'isOriginalFavorited': newOriginalFavoriteStatus,
         'isTranslatedFavorited': newTranslatedFavoriteStatus,
       });
 
-      // 2. Manage the FAVORITES document based on combined favorite status
       if (newOriginalFavoriteStatus || newTranslatedFavoriteStatus) {
-        // If at least one part is now favorited, add/update in favorites collection
-        // Merge ensures we don't overwrite if the document already exists
         batch.set(favoriteDocRef, {
           'originalText': widget.originalText,
-          'translatedText': _translatedText, // Use the current translated text
+          'translatedText': _translatedText,
           'fromLanguage': widget.fromLanguage,
           'toLanguage': widget.toLanguage,
-          'timestamp': FieldValue.serverTimestamp(), // Update timestamp on favorite activity
+          'timestamp': FieldValue.serverTimestamp(),
           'isOriginalFavorited': newOriginalFavoriteStatus,
           'isTranslatedFavorited': newTranslatedFavoriteStatus,
-          'type': 'text', // Assuming text type
+          'type': 'text',
         }, SetOptions(merge: true));
       } else {
-        // If both original and translated are now unfavorited, delete from favorites collection
         batch.delete(favoriteDocRef);
       }
 
-      // Commit the batch operations
       await batch.commit();
 
-      // Update UI state only after successful Firestore operation
       setState(() {
         _isOriginalFavorited = newOriginalFavoriteStatus;
         _isTranslatedFavorited = newTranslatedFavoriteStatus;
@@ -200,7 +180,6 @@ class _TranslationPageState extends State<TranslationPage> {
         ),
       );
     } catch (e) {
-      // If batch fails, print error and show snackbar
       print('Error updating favorite status in Firestore: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to update favorite status: $e')),
@@ -210,27 +189,20 @@ class _TranslationPageState extends State<TranslationPage> {
 
   Future<void> _fetchNewTranslationAndSaveHistory() async {
     setState(() {
-      _isLoadingTranslation = true;
-      _translatedText = '';
+      _isLoadingTranslation = true; // Set loading to true
+      _translatedText = ''; // Clear previous text
     });
 
     final fetchedText = await _fetchTranslation(widget.originalText);
 
-    if (fetchedText.startsWith('Error')) {
-      setState(() {
-        _translatedText = fetchedText;
-        _isLoadingTranslation = false;
-      });
-      return;
-    }
-
     setState(() {
       _translatedText = fetchedText;
-      _isLoadingTranslation = false;
+      _isLoadingTranslation = false; // Set loading to false once done
     });
 
-    // Save the new translation to history and get its ID
-    await _saveNewTranslationHistory(widget.originalText, _translatedText);
+    if (!fetchedText.startsWith('Error')) {
+      await _saveNewTranslationHistory(widget.originalText, _translatedText);
+    }
   }
 
   @override
@@ -267,7 +239,7 @@ class _TranslationPageState extends State<TranslationPage> {
                 TranslationCard(
                   language: widget.fromLanguage,
                   text: widget.originalText,
-                  isFavorited: _isOriginalFavorited, // Use local state
+                  isFavorited: _isOriginalFavorited,
                   onCopyPressed: () {
                     Clipboard.setData(ClipboardData(text: widget.originalText));
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -280,30 +252,52 @@ class _TranslationPageState extends State<TranslationPage> {
                     );
                   },
                   onFavoritePressed: () async {
-                    await _toggleFavoriteStatus(true); // Toggle original favorite
+                    await _toggleFavoriteStatus(true);
                   },
+                  // No isLoading for the original card as it's always available
                 ),
                 const SizedBox(height: 16),
-                _isLoadingTranslation
-                    ? Center(child: CircularProgressIndicator(color: theme.colorScheme.secondary))
-                    : TranslationCard(
+                TranslationCard(
                   language: widget.toLanguage,
                   text: _translatedText,
-                  isFavorited: _isTranslatedFavorited, // Use local state
+                  isFavorited: _isTranslatedFavorited,
                   onFavoritePressed: () async {
-                    await _toggleFavoriteStatus(false); // Toggle translated favorite
+                    // Only allow favoriting if not loading and text is valid
+                    if (!_isLoadingTranslation && !_translatedText.startsWith('Error')) {
+                      await _toggleFavoriteStatus(false);
+                    } else if (_isLoadingTranslation) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please wait for the translation to complete.')),
+                      );
+                    } else if (_translatedText.startsWith('Error')) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Cannot favorite an erroneous translation.')),
+                      );
+                    }
                   },
                   onCopyPressed: () {
-                    Clipboard.setData(ClipboardData(text: _translatedText));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Translated text copied to clipboard'),
-                        duration: const Duration(milliseconds: 500),
-                        backgroundColor: theme.colorScheme.secondary,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
+                    // Only allow copying if not loading and text is valid
+                    if (!_isLoadingTranslation && !_translatedText.startsWith('Error')) {
+                      Clipboard.setData(ClipboardData(text: _translatedText));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text('Translated text copied to clipboard'),
+                          duration: const Duration(milliseconds: 500),
+                          backgroundColor: theme.colorScheme.secondary,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    } else if (_isLoadingTranslation) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please wait for the translation to complete.')),
+                      );
+                    } else if (_translatedText.startsWith('Error')) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Cannot copy an erroneous translation.')),
+                      );
+                    }
                   },
+                  isLoading: _isLoadingTranslation, // Pass the loading state here!
                 ),
                 const SizedBox(height: 24),
                 const _TranslateMoreButton(),

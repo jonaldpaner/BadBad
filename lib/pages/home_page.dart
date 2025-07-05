@@ -48,7 +48,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   double get _responsiveRestingPadding {
     final screenHeight = MediaQuery.of(context).size.height;
-    return screenHeight * 0.12;
+    return screenHeight * 0.08;
   }
 
   void _onFocusChanged() {
