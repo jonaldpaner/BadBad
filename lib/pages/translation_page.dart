@@ -113,7 +113,8 @@ class _TranslationPageState extends State<TranslationPage> {
 
     if (user == null || _currentTranslationDocId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please log in or save translation to favorite.')),
+        const SnackBar(content: Text('Please log in or save translation to favorite.'),
+          duration: const Duration(milliseconds: 500),),
       );
       return;
     }
@@ -182,7 +183,8 @@ class _TranslationPageState extends State<TranslationPage> {
     } catch (e) {
       print('Error updating favorite status in Firestore: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update favorite status: $e')),
+        SnackBar(content: Text('Failed to update favorite status: $e'),
+          duration: const Duration(milliseconds: 500),),
       );
     }
   }
@@ -246,8 +248,6 @@ class _TranslationPageState extends State<TranslationPage> {
                       SnackBar(
                         content: const Text('Original text copied to clipboard'),
                         duration: const Duration(milliseconds: 500),
-                        backgroundColor: theme.colorScheme.secondary,
-                        behavior: SnackBarBehavior.floating,
                       ),
                     );
                   },
@@ -267,11 +267,13 @@ class _TranslationPageState extends State<TranslationPage> {
                       await _toggleFavoriteStatus(false);
                     } else if (_isLoadingTranslation) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please wait for the translation to complete.')),
+                        const SnackBar(content: Text('Please wait for the translation to complete.'),
+                          duration: const Duration(milliseconds: 500),),
                       );
                     } else if (_translatedText.startsWith('Error')) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Cannot favorite an erroneous translation.')),
+                        const SnackBar(content: Text('Cannot favorite an erroneous translation.'),
+                          duration: const Duration(milliseconds: 500),),
                       );
                     }
                   },
@@ -283,17 +285,17 @@ class _TranslationPageState extends State<TranslationPage> {
                         SnackBar(
                           content: const Text('Translated text copied to clipboard'),
                           duration: const Duration(milliseconds: 500),
-                          backgroundColor: theme.colorScheme.secondary,
-                          behavior: SnackBarBehavior.floating,
                         ),
                       );
                     } else if (_isLoadingTranslation) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please wait for the translation to complete.')),
+                        const SnackBar(content: Text('Please wait for the translation to complete.'),
+                          duration: const Duration(milliseconds: 500),),
                       );
                     } else if (_translatedText.startsWith('Error')) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Cannot copy an erroneous translation.')),
+                        const SnackBar(content: Text('Cannot copy an erroneous translation.'),
+                          duration: const Duration(milliseconds: 500),),
                       );
                     }
                   },

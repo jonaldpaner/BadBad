@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_keyboard_visibility/flutter_keyboard_visibility.dart';
 import 'package:ahhhtest/components/home_drawer.dart';
 import 'package:ahhhtest/components/login_signup_dialog.dart';
 import 'package:ahhhtest/pages/camera_page.dart';
@@ -10,7 +11,6 @@ import '../components/translation_input_card.dart';
 
 class HomePage extends StatefulWidget {
   final User? currentUser;
-
   const HomePage({Key? key, required this.currentUser}) : super(key: key);
 
   @override
@@ -20,12 +20,16 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController textController = TextEditingController();
-  final FocusNode textFieldFocusNode = FocusNode();
+  final FocusNode focusNode = FocusNode();
 
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
   bool isTextFieldFocused = false;
+  bool isKeyboardVisible = false;
+
+  late final KeyboardVisibilityController _keyboardVisibilityController;
+  late final Stream<bool> _keyboardStream;
 
   bool get _shouldShowLoginPrompt =>
       widget.currentUser == null || widget.currentUser!.isAnonymous;
@@ -35,6 +39,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
 
+    _keyboardVisibilityController = KeyboardVisibilityController();
+    _keyboardStream = _keyboardVisibilityController.onChange;
+
+    _keyboardStream.listen((visible) {
+      if (mounted) {
+        setState(() {
+          isKeyboardVisible = visible;
+        });
+      }
+    });
+
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -43,57 +58,66 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       ),
     );
 
-    textFieldFocusNode.addListener(_onFocusChanged);
+    focusNode.addListener(_handleFocus);
   }
 
-  double get _responsiveRestingPadding {
-    final screenHeight = MediaQuery.of(context).size.height;
-    return screenHeight * 0.08;
-  }
 
-  void _onFocusChanged() {
-    final hasFocus = textFieldFocusNode.hasFocus;
-    if (hasFocus != isTextFieldFocused) {
-      setState(() {
-        isTextFieldFocused = hasFocus;
-      });
+  void _handleFocus() {
+    if (focusNode.hasFocus != isTextFieldFocused) {
+      if (mounted) { // Ensure widget is mounted before calling setState
+        setState(() {
+          isTextFieldFocused = focusNode.hasFocus;
+        });
+      }
     }
-    if (hasFocus) {
-      HapticFeedback.selectionClick();
+    if (focusNode.hasFocus) {
+      HapticFeedback.selectionClick(); // Provide feedback when gaining focus
     }
   }
 
-  void toggleLanguages() {
-    HapticFeedback.lightImpact();
-    setState(() {
-      final temp = fromLanguage;
-      fromLanguage = toLanguage;
-      toLanguage = temp;
+  void _dismissKeyboard() {
+    if (focusNode.hasFocus) {
+      focusNode.unfocus(); // Unfocus the text field
+    }
+  }
+
+  void _performCleanAction(
+      VoidCallback action, {
+        Future<void> Function()? postAction,
+      }) async {
+    _dismissKeyboard();
+
+    if (isKeyboardVisible) {
+      await Future.delayed(const Duration(milliseconds: 250));
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) { // Ensure widget is still mounted before executing action
+        action();
+      }
     });
+
+    if (postAction != null) {
+      await postAction();
+    }
   }
 
-  void _performActionAndManageFocus(
-    VoidCallback action, {
-    Future<void> Function()? postAction,
-  }) async {
-    FocusScope.of(context).unfocus();
-    if (isTextFieldFocused) {
-      setState(() {
-        isTextFieldFocused = false;
-      });
-    }
+  double get _bottomPadding {
+    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double basePadding = screenHeight * 0.08; // Original base padding
 
-    textFieldFocusNode.canRequestFocus = false;
-    action();
-    if (postAction != null) await postAction();
-    textFieldFocusNode.canRequestFocus = true;
+    if (keyboardHeight > 0) {
+      return keyboardHeight + 8.0;
+    }
+    return basePadding;
   }
 
   @override
   void dispose() {
     textController.dispose();
-    textFieldFocusNode.removeListener(_onFocusChanged);
-    textFieldFocusNode.dispose();
+    focusNode.removeListener(_handleFocus);
+    focusNode.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -101,104 +125,74 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDarkMode = theme.brightness == Brightness.dark;
-
-    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    final double bottomPadding = keyboardHeight > 0
-        ? keyboardHeight + 20
-        : _responsiveRestingPadding;
 
     return Scaffold(
       key: scaffoldKey,
+      backgroundColor: theme.scaffoldBackgroundColor,
       drawer: HomeDrawer(
         currentUser: widget.currentUser,
         onLogout: () async {
           try {
             await FirebaseAuth.instance.signOut();
           } catch (e) {
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text('Logout Error: $e')));
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Logout Error: $e')),
+              );
+            }
           } finally {
-            if (scaffoldKey.currentState?.isDrawerOpen == true) {
-              Navigator.of(context).pop();
+            if (scaffoldKey.currentState?.isDrawerOpen ?? false) {
+              if (context.mounted) Navigator.of(context).pop();
             }
           }
         },
       ),
-      backgroundColor: theme.scaffoldBackgroundColor,
       extendBodyBehindAppBar: true,
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: false, // Essential for manually controlled padding
       body: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          FocusScope.of(context).unfocus();
-          if (isTextFieldFocused) {
-            setState(() {
-              isTextFieldFocused = false;
-            });
-          }
-        },
+        onTap: _dismissKeyboard,
+        behavior: HitTestBehavior.opaque, // Ensures taps outside text field are caught
         child: Stack(
           children: [
-            if (!isDarkMode) const LightBackground(),
+            if (theme.brightness != Brightness.dark) const LightBackground(),
 
-            // AppBar Row
+            // App Bar
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8.0,
-                  vertical: 8.0,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    IconButton(
-                      icon: Icon(
-                        Icons.menu_rounded,
-                        color: theme.iconTheme.color,
-                        size: 25,
-                      ),
-                      onPressed: () {
-                        _performActionAndManageFocus(() {
-                          scaffoldKey.currentState?.openDrawer();
-                        });
-                      },
+                    _buildIconButton(
+                      icon: Icons.menu_rounded,
+                      onTap: () => _performCleanAction(() {
+                        scaffoldKey.currentState?.openDrawer();
+                      }),
                     ),
                     Row(
                       children: [
-                        IconButton(
-                          icon: Icon(
-                            Icons.help_outline,
-                            color: theme.iconTheme.color,
-                            size: 25,
-                          ),
-                          onPressed: () {
-                            _performActionAndManageFocus(
-                              () => showDialog(
-                                context: context,
-                                builder: (context) => const InstructionDialog(),
-                              ),
+                        _buildIconButton(
+                          icon: Icons.help_outline,
+                          onTap: () => _performCleanAction(() {
+                            showDialog(
+                              context: context,
+                              builder: (_) => const InstructionDialog(),
                             );
-                          },
+                          }),
                         ),
-                        IconButton(
-                          icon: Icon(
-                            Icons.person_outline,
-                            color: theme.iconTheme.color,
-                            size: 25,
-                          ),
-                          onPressed: _shouldShowLoginPrompt
-                              ? () {
-                                  _performActionAndManageFocus(
-                                    () => showDialog(
-                                      context: context,
-                                      builder: (context) =>
-                                          LoginSignUpDialog(onLogin: () {}),
-                                    ),
-                                  );
-                                }
-                              : null,
+                        _buildIconButton(
+                          icon: Icons.person_outline,
+                          onTap: _shouldShowLoginPrompt
+                              ? () => _performCleanAction(() {
+                            showDialog(
+                              context: context,
+                              builder: (_) =>
+                                  LoginSignUpDialog(onLogin: () {
+                                    // Handle post-login actions, e.g., refresh user state
+                                  }),
+                            );
+                          })
+                              : null, // No action if user is logged in
                         ),
                       ],
                     ),
@@ -207,107 +201,100 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ),
             ),
 
-            // Translation Input Card
+            // Input Card
             Align(
               alignment: Alignment.bottomCenter,
               child: AnimatedPadding(
-                duration: const Duration(milliseconds: 200),
-                curve: Curves.easeOutCubic,
+                duration: const Duration(milliseconds: 200), // Good balance
+                curve: Curves.easeOutCubic, // Often feels slightly more natural than easeOutQuad
                 padding: EdgeInsets.only(
-                  bottom: bottomPadding,
+                  bottom: _bottomPadding, // Directly uses the dynamically calculated padding
                   left: 20,
                   right: 20,
                 ),
                 child: TranslationInputCard(
                   fromLanguage: fromLanguage,
                   toLanguage: toLanguage,
-                  onToggleLanguages: toggleLanguages,
-                  textController: textController,
-                  focusNode: textFieldFocusNode,
-                  onCameraPressed: () async {
-                    _performActionAndManageFocus(
-                      () {},
-                      postAction: () async {
-                        await Future.delayed(const Duration(milliseconds: 250));
-                        if (!mounted) return;
-                        Navigator.push(
-                          context,
-                          PageRouteBuilder(
-                            pageBuilder:
-                                (context, animation, secondaryAnimation) =>
-                                    const CameraPage(),
-                            transitionsBuilder:
-                                (
-                                  context,
-                                  animation,
-                                  secondaryAnimation,
-                                  child,
-                                ) {
-                                  return SlideTransition(
-                                    position: animation.drive(
-                                      Tween(
-                                        begin: const Offset(0.0, 1.0),
-                                        end: Offset.zero,
-                                      ).chain(
-                                        CurveTween(curve: Curves.easeOutCubic),
-                                      ),
-                                    ),
-                                    child: child,
-                                  );
-                                },
-                            transitionDuration: const Duration(
-                              milliseconds: 300,
-                            ),
-                          ),
-                        );
-                      },
-                    );
+                  onToggleLanguages: () {
                     HapticFeedback.lightImpact();
+                    setState(() {
+                      final temp = fromLanguage;
+                      fromLanguage = toLanguage;
+                      toLanguage = temp;
+                    });
+                  },
+                  textController: textController,
+                  focusNode: focusNode,
+                  languageSelector: null,
+                  onCameraPressed: () {
+                    _performCleanAction(() {}, postAction: () async {
+                      if (!mounted) return;
+                      Navigator.push(
+                        context,
+                        PageRouteBuilder(
+                          pageBuilder: (_, __, ___) => const CameraPage(),
+                          transitionsBuilder: (_, anim, __, child) {
+                            return SlideTransition(
+                              position: anim.drive(
+                                Tween(
+                                  begin: const Offset(0, 1),
+                                  end: Offset.zero,
+                                ).chain(
+                                  CurveTween(curve: Curves.easeOutCubic),
+                                ),
+                              ),
+                              child: child,
+                            );
+                          },
+                          transitionDuration: const Duration(milliseconds: 300),
+                        ),
+                      );
+                    });
                   },
                   onTranslatePressed: () {
                     final inputText = textController.text.trim();
                     if (inputText.isEmpty) {
                       HapticFeedback.vibrate();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Please enter text to translate'),
-                          duration: Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter text to translate'),
+                            duration: Duration(seconds: 2),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
                       return;
                     }
 
                     HapticFeedback.lightImpact();
-                    _performActionAndManageFocus(
-                      () => Navigator.push(
+                    _performCleanAction(() {
+                      if (!mounted) return;
+                      Navigator.push(
                         context,
                         PageRouteBuilder(
-                          pageBuilder:
-                              (context, animation, secondaryAnimation) =>
-                                  TranslationPage(
-                                    originalText: inputText,
-                                    fromLanguage: fromLanguage,
-                                    toLanguage: toLanguage,
-                                  ),
-                          transitionsBuilder:
-                              (context, animation, secondaryAnimation, child) {
-                                return SlideTransition(
-                                  position: animation.drive(
-                                    Tween(
-                                      begin: const Offset(1.0, 0.0),
-                                      end: Offset.zero,
-                                    ).chain(
-                                      CurveTween(curve: Curves.easeOutCubic),
-                                    ),
-                                  ),
-                                  child: child,
-                                );
-                              },
+                          pageBuilder: (_, __, ___) => TranslationPage(
+                            originalText: inputText,
+                            fromLanguage: fromLanguage,
+                            toLanguage: toLanguage,
+                          ),
+                          transitionsBuilder: (_, anim, __, child) {
+                            return SlideTransition(
+                              position: anim.drive(
+                                Tween(
+                                  begin: const Offset(1.0, 0.0),
+                                  end: Offset.zero,
+                                ).chain(
+                                  CurveTween(curve: Curves.easeOutCubic),
+                                ),
+                              ),
+                              child: child,
+                            );
+                          },
                           transitionDuration: const Duration(milliseconds: 300),
                         ),
-                      ),
-                    );
+                      );
+                    });
                   },
                 ),
               ),
@@ -317,9 +304,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       ),
     );
   }
+
+  Widget _buildIconButton({required IconData icon, VoidCallback? onTap}) {
+    return IconButton(
+      icon: Icon(icon, size: 25),
+      onPressed: onTap,
+      splashRadius: 22,
+      color: Theme.of(context).iconTheme.color,
+    );
+  }
 }
 
-// Extracted gradient widget
 class LightBackground extends StatelessWidget {
   const LightBackground({super.key});
 
