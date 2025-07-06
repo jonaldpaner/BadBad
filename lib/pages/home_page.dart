@@ -17,11 +17,12 @@ class HomePage extends StatefulWidget {
   _HomePageState createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+class _HomePageState extends State<HomePage>
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   final GlobalKey<ScaffoldState> scaffoldKey = GlobalKey<ScaffoldState>();
   final TextEditingController textController = TextEditingController();
   final FocusNode focusNode = FocusNode();
-
+  bool _isDialogShowing = false;
   String fromLanguage = 'English';
   String toLanguage = 'Ata Manobo';
 
@@ -43,11 +44,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _keyboardStream = _keyboardVisibilityController.onChange;
 
     _keyboardStream.listen((visible) {
-      if (mounted) {
-        setState(() {
-          isKeyboardVisible = visible;
-        });
-      }
+      if (!mounted) return;
+      setState(() {
+        isKeyboardVisible = visible;
+      });
     });
 
     SystemChrome.setSystemUIOverlayStyle(
@@ -61,23 +61,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     focusNode.addListener(_handleFocus);
   }
 
-
   void _handleFocus() {
     if (focusNode.hasFocus != isTextFieldFocused) {
-      if (mounted) { // Ensure widget is mounted before calling setState
-        setState(() {
-          isTextFieldFocused = focusNode.hasFocus;
-        });
-      }
+      setState(() {
+        isTextFieldFocused = focusNode.hasFocus;
+      });
     }
     if (focusNode.hasFocus) {
-      HapticFeedback.selectionClick(); // Provide feedback when gaining focus
+      HapticFeedback.selectionClick();
     }
   }
 
   void _dismissKeyboard() {
     if (focusNode.hasFocus) {
-      focusNode.unfocus(); // Unfocus the text field
+      focusNode.unfocus();
     }
   }
 
@@ -92,7 +89,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) { // Ensure widget is still mounted before executing action
+      if (mounted) {
         action();
       }
     });
@@ -100,17 +97,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (postAction != null) {
       await postAction();
     }
-  }
-
-  double get _bottomPadding {
-    final double keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
-    final double screenHeight = MediaQuery.of(context).size.height;
-    final double basePadding = screenHeight * 0.08; // Original base padding
-
-    if (keyboardHeight > 0) {
-      return keyboardHeight + 8.0;
-    }
-    return basePadding;
   }
 
   @override
@@ -125,6 +111,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       key: scaffoldKey,
@@ -148,18 +135,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         },
       ),
       extendBodyBehindAppBar: true,
-      resizeToAvoidBottomInset: false, // Essential for manually controlled padding
+      resizeToAvoidBottomInset: false,
       body: GestureDetector(
         onTap: _dismissKeyboard,
-        behavior: HitTestBehavior.opaque, // Ensures taps outside text field are caught
+        behavior: HitTestBehavior.opaque,
         child: Stack(
           children: [
             if (theme.brightness != Brightness.dark) const LightBackground(),
-
-            // App Bar
             SafeArea(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -183,16 +169,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         _buildIconButton(
                           icon: Icons.person_outline,
                           onTap: _shouldShowLoginPrompt
-                              ? () => _performCleanAction(() {
-                            showDialog(
+                              ? () => _performCleanAction(() async { // Make this an async function
+                            setState(() {
+                              _isDialogShowing = true; // Set to true when dialog is about to show
+                            });
+                            await showDialog( // Await the dialog's dismissal
                               context: context,
-                              builder: (_) =>
-                                  LoginSignUpDialog(onLogin: () {
-                                    // Handle post-login actions, e.g., refresh user state
-                                  }),
+                              builder: (_) => LoginSignUpDialog(
+                                onLogin: () {
+                                  // Your onLogin logic, e.g., Navigator.pop(context);
+                                },
+                              ),
                             );
+                            // This code runs AFTER the dialog is dismissed (via Navigator.pop or user tapping outside)
+                            if (mounted) { // Check if the widget is still mounted before setting state
+                              setState(() {
+                                _isDialogShowing = false; // Set to false after dialog is dismissed
+                              });
+                            }
                           })
-                              : null, // No action if user is logged in
+                              : null,
                         ),
                       ],
                     ),
@@ -200,15 +196,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ),
               ),
             ),
-
-            // Input Card
             Align(
               alignment: Alignment.bottomCenter,
               child: AnimatedPadding(
-                duration: const Duration(milliseconds: 200), // Good balance
-                curve: Curves.easeOutCubic, // Often feels slightly more natural than easeOutQuad
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOutCubic,
                 padding: EdgeInsets.only(
-                  bottom: _bottomPadding, // Directly uses the dynamically calculated padding
+                  bottom: _isDialogShowing
+                      ? MediaQuery.of(context).size.height * 0.08 // Keep at default height
+                      : (bottomInset > 0 ? bottomInset + 8.0 : MediaQuery.of(context).size.height * 0.08),
                   left: 20,
                   right: 20,
                 ),
@@ -239,9 +235,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 Tween(
                                   begin: const Offset(0, 1),
                                   end: Offset.zero,
-                                ).chain(
-                                  CurveTween(curve: Curves.easeOutCubic),
-                                ),
+                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
                               ),
                               child: child,
                             );
@@ -259,8 +253,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text('Please enter text to translate'),
-                            duration: Duration(seconds: 2),
-                            behavior: SnackBarBehavior.floating,
+                            duration: Duration(milliseconds: 500),
                           ),
                         );
                       }
@@ -284,9 +277,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 Tween(
                                   begin: const Offset(1.0, 0.0),
                                   end: Offset.zero,
-                                ).chain(
-                                  CurveTween(curve: Curves.easeOutCubic),
-                                ),
+                                ).chain(CurveTween(curve: Curves.easeOutCubic)),
                               ),
                               child: child,
                             );
@@ -298,7 +289,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   },
                 ),
               ),
-            ),
+            )
           ],
         ),
       ),

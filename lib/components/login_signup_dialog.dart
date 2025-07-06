@@ -119,7 +119,6 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
   Widget build(BuildContext context) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final theme = Theme.of(context);
-    final dialogBackground = theme.dialogBackgroundColor;
     final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
     final buttonColor = theme.colorScheme.primary;
 
@@ -137,7 +136,6 @@ class _LoginSignUpDialogState extends State<LoginSignUpDialog> {
     final verticalSpacing = screenHeight * 0.015;
 
     return AlertDialog(
-      backgroundColor: dialogBackground,
       title: Center(
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
