@@ -13,7 +13,8 @@ class HomeDrawer extends StatelessWidget {
     required this.onLogout,
   }) : super(key: key);
 
-  bool get _shouldShowLogoutButton => currentUser != null && !currentUser!.isAnonymous;
+  bool get _shouldShowLogoutButton =>
+      currentUser != null && !currentUser!.isAnonymous;
 
   @override
   Widget build(BuildContext context) {
@@ -22,26 +23,29 @@ class HomeDrawer extends StatelessWidget {
 
     return Drawer(
       elevation: 16,
-      child: Container(
-        color: theme.scaffoldBackgroundColor,
+      child: SafeArea(
         child: Column(
           children: [
             DrawerHeader(
               decoration: BoxDecoration(
-                color: isDark ? Colors.grey[800] : Colors.white,
+                color: isDark ? Colors.grey[900] : Colors.white,
               ),
               child: Align(
                 alignment: Alignment.bottomLeft,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Icon(
-                      Icons.person_pin,
-                      size: 60,
-                      color: isDark ? Colors.white : Colors.black,
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: isDark ? Colors.white10 : Colors.grey[300],
+                      child: Icon(
+                        Icons.person,
+                        size: 40,
+                        color: isDark ? Colors.white : Colors.black,
+                      ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 10),
                     Text(
                       currentUser?.email ?? 'Guest',
                       style: theme.textTheme.headlineSmall?.copyWith(
@@ -62,65 +66,47 @@ class HomeDrawer extends StatelessWidget {
               ),
             ),
             ListTile(
-              leading: Icon(
-                Icons.favorite_border_rounded,
-                color: theme.iconTheme.color,
-              ),
-              title: Text(
-                'Favorites',
-                style: theme.textTheme.bodyLarge,
-              ),
+              leading: Icon(Icons.favorite_border_rounded, color: theme.iconTheme.color),
+              title: Text('Favorites', style: theme.textTheme.bodyLarge),
               onTap: () {
                 Navigator.pop(context);
                 Future.delayed(const Duration(milliseconds: 200), () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const FavoritesPageWidget(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const FavoritesPageWidget()),
                   );
                 });
               },
             ),
             ListTile(
-              leading: Icon(
-                Icons.history_rounded,
-                color: theme.iconTheme.color,
-              ),
-              title: Text(
-                'Recent History',
-                style: theme.textTheme.bodyLarge,
-              ),
+              leading: Icon(Icons.history_rounded, color: theme.iconTheme.color),
+              title: Text('Recent History', style: theme.textTheme.bodyLarge),
               onTap: () {
                 Navigator.pop(context);
                 Future.delayed(const Duration(milliseconds: 200), () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const HistoryPageWidget(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const HistoryPageWidget()),
                   );
                 });
               },
             ),
             if (_shouldShowLogoutButton)
               ListTile(
-                leading: Icon(
-                  Icons.logout,
-                  color: theme.iconTheme.color,
-                ),
-                title: Text(
-                  'Logout',
-                  style: theme.textTheme.bodyLarge,
-                ),
+                leading: Icon(Icons.logout, color: theme.iconTheme.color),
+                title: Text('Logout', style: theme.textTheme.bodyLarge),
                 onTap: () async {
+                  Navigator.pop(context); // Close drawer first
+                  await Future.delayed(const Duration(milliseconds: 200));
                   await onLogout();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('You have been logged out'),
-                      duration: Duration(seconds: 1),
-                    ),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('You have been logged out'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  }
                 },
               ),
           ],
