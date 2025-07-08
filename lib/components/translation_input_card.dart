@@ -5,7 +5,6 @@ import 'language_selector.dart';
 class TranslationInputCard extends StatefulWidget {
   final String fromLanguage;
   final String toLanguage;
-  final VoidCallback onToggleLanguages;
   final TextEditingController textController;
   final FocusNode focusNode;
   final VoidCallback onCameraPressed;
@@ -16,7 +15,6 @@ class TranslationInputCard extends StatefulWidget {
     Key? key,
     required this.fromLanguage,
     required this.toLanguage,
-    required this.onToggleLanguages,
     required this.textController,
     required this.focusNode,
     required this.onCameraPressed,
@@ -58,11 +56,7 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: widget.languageSelector ??
-                      LanguageSelector(
-                        onLanguageChanged: (source, target) {
-                          widget.onToggleLanguages();
-                        },
-                      ),
+                      const LanguageSelector(),
                 ),
                 const SizedBox(height: 4),
                 Stack(

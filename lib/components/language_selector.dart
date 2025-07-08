@@ -1,28 +1,16 @@
-// lib/components/language_selector.dart
 import 'package:flutter/material.dart';
 
 class LanguageSelector extends StatefulWidget {
-  final void Function(String source, String target)? onLanguageChanged;
-
-  const LanguageSelector({Key? key, this.onLanguageChanged}) : super(key: key);
+  const LanguageSelector({Key? key}) : super(key: key);
 
   @override
   State<LanguageSelector> createState() => _LanguageSelectorState();
 }
 
 class _LanguageSelectorState extends State<LanguageSelector> {
-  String sourceLanguage = 'English';
-  String targetLanguage = 'Ata Manobo';
+  final String sourceLanguage = 'Ata Manobo';
+  final String targetLanguage = 'English';
 
-  void _swapLanguages() {
-    setState(() {
-      final temp = sourceLanguage;
-      sourceLanguage = targetLanguage;
-      targetLanguage = temp;
-    });
-
-    widget.onLanguageChanged?.call(sourceLanguage, targetLanguage);
-  }
 
   Widget _buildLanguageChip(String language, Key key) {
     final theme = Theme.of(context);
@@ -61,21 +49,18 @@ class _LanguageSelectorState extends State<LanguageSelector> {
             ),
           ),
           const SizedBox(width: 12),
-          GestureDetector(
-            onTap: _swapLanguages,
-            child: Container(
-              width: 48.0, // Adjust as needed for the circle size and hitbox
-              height: 48.0, // Adjust as needed
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.transparent,
-                  width: 1.5, // Adjust border thickness
-                ),
+          Container(
+            width: 48.0,
+            height: 48.0,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: Colors.transparent,
+                width: 1.5,
               ),
-              alignment: Alignment.center, // Center the icon within the circle
-              child: Icon(Icons.swap_horiz, size: 22, color: theme.iconTheme.color),
             ),
+            alignment: Alignment.center,
+            child: Icon(Icons.arrow_right_alt, size: 22, color: theme.iconTheme.color),
           ),
           const SizedBox(width: 12),
           Flexible(

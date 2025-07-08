@@ -1,4 +1,3 @@
-// pages/history_page.dart
 import 'package:flutter/material.dart';
 import 'package:ahhhtest/components/history_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,15 +21,12 @@ class _HistoryPageWidgetState extends State<HistoryPageWidget> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // State to control delayed loading indicator visibility
   bool _showLoadingIndicator = false;
   Timer? _loadingTimer;
 
   @override
   void initState() {
     super.initState();
-    // Start a timer to show the loading indicator after a short delay (e.g., 200ms).
-    // If data loads before this timer fires, the indicator will not be shown.
     _loadingTimer = Timer(const Duration(milliseconds: 200), () {
       if (mounted) { // Ensure the widget is still in the tree before updating state
         setState(() {
