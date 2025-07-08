@@ -25,7 +25,23 @@ class InstructionDialog extends StatelessWidget {
               TextSpan(
                 children: [
                   TextSpan(
-                    text: '1. Enter Text: ',
+                    text: '1. Fixed Translation Direction: ', // Updated title
+                    style: bodyTextStyle?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  TextSpan(
+                    // Clarified the fixed direction
+                    text: 'This app translates from Ata Manobo to English.',
+                    style: bodyTextStyle,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text: '2. Enter Text: ', // Re-numbered
                     style: bodyTextStyle?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   TextSpan(
@@ -36,42 +52,17 @@ class InstructionDialog extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
+            // REMOVED: Instruction for "Toggle Languages"
+            // It's no longer relevant since the language direction is fixed.
             Text.rich(
               TextSpan(
                 children: [
                   TextSpan(
-                    text: '2. Toggle Languages: ',
+                    text: '3. Use Camera: ', // Re-numbered
                     style: bodyTextStyle?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   TextSpan(
-                    text: 'Tap the "Swap" icon (', // Re-added "Tap the...icon ("
-                    style: bodyTextStyle,
-                  ),
-                  WidgetSpan(
-                    alignment: PlaceholderAlignment.middle,
-                    child: Icon(
-                      Icons.swap_horiz,
-                      size: iconSize,
-                      color: iconColor,
-                    ),
-                  ),
-                  TextSpan(
-                    text: ') to switch the "From" and "To" languages.', // Re-added closing parenthesis
-                    style: bodyTextStyle,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(
-                    text: '3. Use Camera: ',
-                    style: bodyTextStyle?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  TextSpan(
-                    text: 'Tap the camera icon (', // Re-added "Tap the...icon ("
+                    text: 'Tap the camera icon (',
                     style: bodyTextStyle,
                   ),
                   WidgetSpan(
@@ -83,7 +74,7 @@ class InstructionDialog extends StatelessWidget {
                     ),
                   ),
                   TextSpan(
-                    text: ') to translate text from an image using your device\'s camera.', // Re-added closing parenthesis
+                    text: ') to translate text from an image using your device\'s camera.',
                     style: bodyTextStyle,
                   ),
                 ],
@@ -94,7 +85,7 @@ class InstructionDialog extends StatelessWidget {
               TextSpan(
                 children: [
                   TextSpan(
-                    text: '4. Translate: ',
+                    text: '4. Translate: ', // Re-numbered
                     style: bodyTextStyle?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   TextSpan(
@@ -109,11 +100,11 @@ class InstructionDialog extends StatelessWidget {
               TextSpan(
                 children: [
                   TextSpan(
-                    text: '5. Manage Account: ',
+                    text: '5. Manage Account: ', // Re-numbered
                     style: bodyTextStyle?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   TextSpan(
-                    text: 'Tap the profile icon (', // Re-added "Tap the...icon ("
+                    text: 'Tap the profile icon (',
                     style: bodyTextStyle,
                   ),
                   WidgetSpan(
@@ -125,7 +116,7 @@ class InstructionDialog extends StatelessWidget {
                     ),
                   ),
                   TextSpan(
-                    text: ') to log in or create an account for more features.', // Re-added closing parenthesis
+                    text: ') to log in or create an account for more features.',
                     style: bodyTextStyle,
                   ),
                 ],
@@ -136,11 +127,11 @@ class InstructionDialog extends StatelessWidget {
               TextSpan(
                 children: [
                   TextSpan(
-                    text: '6. Navigation Drawer: ',
+                    text: '6. Navigation Drawer: ', // Re-numbered
                     style: bodyTextStyle?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   TextSpan(
-                    text: 'Tap the menu icon (', // Re-added "Tap the...icon ("
+                    text: 'Tap the menu icon (',
                     style: bodyTextStyle,
                   ),
                   WidgetSpan(
@@ -152,7 +143,7 @@ class InstructionDialog extends StatelessWidget {
                     ),
                   ),
                   TextSpan(
-                    text: ') to access favorites, history, and other options.', // Re-added closing parenthesis
+                    text: ') to access favorites, history, and other options.',
                     style: bodyTextStyle,
                   ),
                 ],

@@ -8,6 +8,7 @@ import 'package:ahhhtest/pages/camera_page.dart';
 import 'package:ahhhtest/pages/translation_page.dart';
 import 'package:ahhhtest/components/instruction_dialog.dart';
 import '../components/translation_input_card.dart';
+import '../components/language_selector.dart';
 
 class HomePage extends StatefulWidget {
   final User? currentUser;
@@ -23,8 +24,9 @@ class _HomePageState extends State<HomePage>
   final TextEditingController textController = TextEditingController();
   final FocusNode focusNode = FocusNode();
   bool _isDialogShowing = false;
-  String fromLanguage = 'English';
-  String toLanguage = 'Ata Manobo';
+
+  final String fromLanguage = 'Ata Manobo';
+  final String toLanguage = 'English';
 
   bool isTextFieldFocused = false;
   bool isKeyboardVisible = false;
@@ -169,11 +171,11 @@ class _HomePageState extends State<HomePage>
                         _buildIconButton(
                           icon: Icons.person_outline,
                           onTap: _shouldShowLoginPrompt
-                              ? () => _performCleanAction(() async { // Make this an async function
+                              ? () => _performCleanAction(() async {
                             setState(() {
-                              _isDialogShowing = true; // Set to true when dialog is about to show
+                              _isDialogShowing = true;
                             });
-                            await showDialog( // Await the dialog's dismissal
+                            await showDialog(
                               context: context,
                               builder: (_) => LoginSignUpDialog(
                                 onLogin: () {
@@ -181,10 +183,9 @@ class _HomePageState extends State<HomePage>
                                 },
                               ),
                             );
-                            // This code runs AFTER the dialog is dismissed (via Navigator.pop or user tapping outside)
-                            if (mounted) { // Check if the widget is still mounted before setting state
+                            if (mounted) {
                               setState(() {
-                                _isDialogShowing = false; // Set to false after dialog is dismissed
+                                _isDialogShowing = false;
                               });
                             }
                           })
@@ -209,19 +210,12 @@ class _HomePageState extends State<HomePage>
                   right: 20,
                 ),
                 child: TranslationInputCard(
-                  fromLanguage: fromLanguage,
-                  toLanguage: toLanguage,
-                  onToggleLanguages: () {
-                    HapticFeedback.lightImpact();
-                    setState(() {
-                      final temp = fromLanguage;
-                      fromLanguage = toLanguage;
-                      toLanguage = temp;
-                    });
-                  },
+                  fromLanguage: fromLanguage, // These are now fixed
+                  toLanguage: toLanguage,     // These are now fixed
+                  // onToggleLanguages is removed as there is no toggling allowed
                   textController: textController,
                   focusNode: focusNode,
-                  languageSelector: null,
+                  languageSelector: null, // Still assuming LanguageSelector is managed externally
                   onCameraPressed: () {
                     _performCleanAction(() {}, postAction: () async {
                       if (!mounted) return;
@@ -268,8 +262,8 @@ class _HomePageState extends State<HomePage>
                         PageRouteBuilder(
                           pageBuilder: (_, __, ___) => TranslationPage(
                             originalText: inputText,
-                            fromLanguage: fromLanguage,
-                            toLanguage: toLanguage,
+                            fromLanguage: fromLanguage, // Will be fixed 'English'
+                            toLanguage: toLanguage,     // Will be fixed 'Ata Manobo'
                           ),
                           transitionsBuilder: (_, anim, __, child) {
                             return SlideTransition(
@@ -297,13 +291,30 @@ class _HomePageState extends State<HomePage>
   }
 
   Widget _buildIconButton({required IconData icon, VoidCallback? onTap}) {
-    return IconButton(
-      icon: Icon(icon, size: 25),
-      onPressed: onTap,
-      splashRadius: 22,
-      color: Theme.of(context).iconTheme.color,
+    final bool isEnabled = onTap != null;
+
+    return Material(
+      type: MaterialType.transparency,
+      shape: const CircleBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: isEnabled ? Colors.black26 : Colors.transparent,
+        highlightColor: isEnabled ? Colors.black12 : Colors.transparent,
+        child: Padding(
+          padding: const EdgeInsets.all(10.0),
+          child: Icon(
+            icon,
+            size: 25,
+            color: isEnabled
+                ? Theme.of(context).iconTheme.color
+                : Theme.of(context).disabledColor,
+          ),
+        ),
+      ),
     );
   }
+
 }
 
 class LightBackground extends StatelessWidget {

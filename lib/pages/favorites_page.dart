@@ -1,10 +1,9 @@
-// pages/favorites_page.dart
 import 'package:flutter/material.dart';
 import 'package:ahhhtest/components/favorites_card.dart'; // Ensure this import is correct
 import 'package:ahhhtest/pages/translation_page.dart'; // Ensure this import is correct
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'dart:async'; // Import for Timer
+import 'dart:async';
 
 class FavoritesPageWidget extends StatefulWidget {
   const FavoritesPageWidget({Key? key}) : super(key: key);

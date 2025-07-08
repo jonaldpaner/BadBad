@@ -6,7 +6,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:image_picker/image_picker.dart';
 import 'dart:math';
 import '../components/camera_display_area.dart';
-import '../components/language_selector.dart';
+import '../components/language_selector.dart'; // Ensure this import is correct
 import 'translation_page.dart';
 import '../services/camera_service.dart';
 import '../utils/bounding_box_painter.dart';
@@ -27,15 +27,15 @@ class _CameraPageState extends State<CameraPage> {
   bool _isLoading = false;
   List<TextBox> _textBoxes = [];
   List<TextBox> _selectedWords = [];
-  String _fromLanguage = 'English';
-  String _toLanguage = 'Ata Manobo';
+  String _fromLanguage = 'Ata Manobo';
+  String _toLanguage = 'English';
   double _currentZoom = 1, _minZoom = 1, _maxZoom = 1, _baseZoom = 1;
   File? _capturedImageFile;
   Size _originalImageSize = const Size(1280, 720);
   bool _hasCapturedImage = false;
   bool _isFromGallery = false;
   final TransformationController _transformationController =
-      TransformationController();
+  TransformationController();
 
   Size? _previewSize;
   BuildContext? _customPaintContext;
@@ -289,13 +289,13 @@ class _CameraPageState extends State<CameraPage> {
     });
 
     final Offset tapInOriginalImageCoords =
-        TextRecognitionHelpers.toOriginalImageCoordinates(
-          localPos: pos,
-          previewSize: previewSize,
-          originalImageSize: _originalImageSize,
-          transformationController: _transformationController,
-          fit: BoxFit.cover,
-        );
+    TextRecognitionHelpers.toOriginalImageCoordinates(
+      localPos: pos,
+      previewSize: previewSize,
+      originalImageSize: _originalImageSize,
+      transformationController: _transformationController,
+      fit: BoxFit.cover,
+    );
 
     TextBox? tappedWord;
     for (final b in _textBoxes) {
@@ -360,7 +360,7 @@ class _CameraPageState extends State<CameraPage> {
     }
 
     final RenderBox renderBox =
-        _customPaintContext!.findRenderObject() as RenderBox;
+    _customPaintContext!.findRenderObject() as RenderBox;
     final Offset localPos = renderBox.globalToLocal(details.globalPosition);
 
     setState(() {
@@ -368,13 +368,13 @@ class _CameraPageState extends State<CameraPage> {
     });
 
     final Offset currentDragPointInOriginalCoords =
-        TextRecognitionHelpers.toOriginalImageCoordinates(
-          localPos: localPos,
-          previewSize: _previewSize!,
-          originalImageSize: _originalImageSize,
-          transformationController: _transformationController,
-          fit: BoxFit.cover,
-        );
+    TextRecognitionHelpers.toOriginalImageCoordinates(
+      localPos: localPos,
+      previewSize: _previewSize!,
+      originalImageSize: _originalImageSize,
+      transformationController: _transformationController,
+      fit: BoxFit.cover,
+    );
 
     final List<TextBox> allWords = _textBoxes.where((b) => b.isWord).toList();
 
@@ -427,10 +427,10 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   void _showTranslationLimitDialog(
-    BuildContext context,
-    String fullText,
-    int limit,
-  ) {
+      BuildContext context,
+      String fullText,
+      int limit,
+      ) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -448,8 +448,10 @@ class _CameraPageState extends State<CameraPage> {
           ),
           actions: <Widget>[
             TextButton(
-              child: const Text('OK',style: TextStyle(color: Color(0xFF219EBC)),
-        ),
+              child: const Text(
+                'OK',
+                style: TextStyle(color: Color(0xFF219EBC)),
+              ),
               onPressed: () {
                 Navigator.of(context).pop();
               },
@@ -462,7 +464,6 @@ class _CameraPageState extends State<CameraPage> {
 
   void _gotoTranslate(String txt) {
     String textToTranslate = txt;
-    bool truncated = false; // Keep truncated flag for the dialog
 
     if (textToTranslate.length > _maxTranslationCharacters) {
       _showTranslationLimitDialog(context, txt, _maxTranslationCharacters);
@@ -480,6 +481,7 @@ class _CameraPageState extends State<CameraPage> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -494,10 +496,10 @@ class _CameraPageState extends State<CameraPage> {
         BoxFit.cover,
       );
       final List<Offset> transformedPoints =
-          TextRecognitionHelpers.transformPoints(
-            scaledPoints,
-            _transformationController.value,
-          );
+      TextRecognitionHelpers.transformPoints(
+        scaledPoints,
+        _transformationController.value,
+      );
 
       transformedFixedAnchorRect = TextRecognitionHelpers.calculateBoundingRect(
         transformedPoints,
@@ -519,10 +521,10 @@ class _CameraPageState extends State<CameraPage> {
       );
 
       final List<Offset> transformedAllPoints =
-          TextRecognitionHelpers.transformPoints(
-            scaledAllPoints,
-            _transformationController.value,
-          );
+      TextRecognitionHelpers.transformPoints(
+        scaledAllPoints,
+        _transformationController.value,
+      );
 
       currentSelectionRect = TextRecognitionHelpers.calculateBoundingRect(
         transformedAllPoints,
@@ -602,7 +604,7 @@ class _CameraPageState extends State<CameraPage> {
                           selectedWords: _selectedWords,
                           currentSelectionRect: currentSelectionRect,
                           onCameraScaleStart: (details) =>
-                              _baseZoom = _currentZoom,
+                          _baseZoom = _currentZoom,
                           onCameraScaleUpdate: (scale) async {
                             var z = (_baseZoom * scale).clamp(
                               _minZoom,
@@ -668,10 +670,10 @@ class _CameraPageState extends State<CameraPage> {
                         transformationController: _transformationController,
                         fixedAnchorWord: _fixedAnchorWord,
                         isDraggingLeftHandleCurrent:
-                            _isDraggingLeftHandleCurrent,
+                        _isDraggingLeftHandleCurrent,
                         transformedFixedAnchorRect: transformedFixedAnchorRect,
                         currentDraggingHandleScreenPosition:
-                            _currentDraggingHandleScreenPosition,
+                        _currentDraggingHandleScreenPosition,
                         leftHandleWord: _leftHandleWord,
                         rightHandleWord: _rightHandleWord,
                         onHandlePanStartLeft: (details) {
@@ -680,8 +682,8 @@ class _CameraPageState extends State<CameraPage> {
                               _fixedAnchorWord = _rightHandleWord;
                               _isDraggingLeftHandleCurrent = true;
                               final RenderBox renderBox =
-                                  _customPaintContext!.findRenderObject()
-                                      as RenderBox;
+                              _customPaintContext!.findRenderObject()
+                              as RenderBox;
                               _currentDraggingHandleScreenPosition = renderBox
                                   .globalToLocal(details.globalPosition);
                             });
@@ -693,8 +695,8 @@ class _CameraPageState extends State<CameraPage> {
                               _fixedAnchorWord = _leftHandleWord;
                               _isDraggingLeftHandleCurrent = false;
                               final RenderBox renderBox =
-                                  _customPaintContext!.findRenderObject()
-                                      as RenderBox;
+                              _customPaintContext!.findRenderObject()
+                              as RenderBox;
                               _currentDraggingHandleScreenPosition = renderBox
                                   .globalToLocal(details.globalPosition);
                             });
@@ -750,14 +752,7 @@ class _CameraPageState extends State<CameraPage> {
                   color: Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: LanguageSelector(
-                  onLanguageChanged: (s, t) {
-                    setState(() {
-                      _fromLanguage = s;
-                      _toLanguage = t;
-                    });
-                  },
-                ),
+                child: const LanguageSelector(),
               ),
             ),
           ],
