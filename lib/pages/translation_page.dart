@@ -68,7 +68,7 @@ class _TranslationPageState extends State<TranslationPage> {
 
     try {
       final encodedMessage = Uri.encodeComponent(message);
-      final url = Uri.parse('https://badbad-api.onrender.com/translate/$apiEndpoint?message=$encodedMessage');
+      final url = Uri.parse('http://127.0.0.1:5000/translate/$apiEndpoint?message=$encodedMessage');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
