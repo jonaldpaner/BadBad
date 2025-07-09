@@ -6,7 +6,7 @@ import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart
 import 'package:image_picker/image_picker.dart';
 import 'dart:math';
 import '../components/camera_display_area.dart';
-import '../components/language_selector.dart'; // Ensure this import is correct
+import '../components/language_selector.dart';
 import 'translation_page.dart';
 import '../services/camera_service.dart';
 import '../utils/bounding_box_painter.dart';
@@ -47,7 +47,8 @@ class _CameraPageState extends State<CameraPage> {
   TextBox? _leftHandleWord;
   TextBox? _rightHandleWord;
 
-  static const int _maxTranslationCharacters = 70;
+  // Change this constant to define the maximum number of words
+  static const int _maxTranslationWords = 3;
 
   @override
   void initState() {
@@ -351,6 +352,7 @@ class _CameraPageState extends State<CameraPage> {
     return TextRecognitionHelpers.sortWordsByReadingOrder(words);
   }
 
+
   void _updateSelectionBasedOnHandleDrag(DragUpdateDetails details) {
     if (!_hasCapturedImage ||
         _previewSize == null ||
@@ -406,6 +408,7 @@ class _CameraPageState extends State<CameraPage> {
       newEndIndex + 1,
     );
 
+
     final sortedNewSelection = _sortWordsByReadingOrder(newSelection);
 
     TextBox? newLeftHandleWord = sortedNewSelection.isNotEmpty
@@ -428,7 +431,6 @@ class _CameraPageState extends State<CameraPage> {
 
   void _showTranslationLimitDialog(
       BuildContext context,
-      String fullText,
       int limit,
       ) {
     showDialog(
@@ -440,7 +442,7 @@ class _CameraPageState extends State<CameraPage> {
             child: ListBody(
               children: <Widget>[
                 Text(
-                  'The translation service currently supports a maximum of $limit characters.',
+                  'The translation service currently supports a maximum of $limit words.',
                 ),
                 const SizedBox(height: 10),
               ],
@@ -464,9 +466,11 @@ class _CameraPageState extends State<CameraPage> {
 
   void _gotoTranslate(String txt) {
     String textToTranslate = txt;
+    final int wordCount = textToTranslate.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).length;
 
-    if (textToTranslate.length > _maxTranslationCharacters) {
-      _showTranslationLimitDialog(context, txt, _maxTranslationCharacters);
+
+    if (wordCount > _maxTranslationWords) {
+      _showTranslationLimitDialog(context, _maxTranslationWords);
       return;
     }
 
@@ -719,7 +723,6 @@ class _CameraPageState extends State<CameraPage> {
                             final sorted = _sortWordsByReadingOrder(
                               _selectedWords,
                             );
-
                             _leftHandleWord = sorted.isNotEmpty
                                 ? sorted.first
                                 : null;
@@ -735,8 +738,8 @@ class _CameraPageState extends State<CameraPage> {
                         onTranslate: (text) {
                           _gotoTranslate(text);
                         },
-                        // Pass the maxTranslationCharacters to the overlay
-                        maxTranslationCharacters: _maxTranslationCharacters,
+                        // Pass the maxTranslationWords to the overlay
+                        maxTranslationWords: _maxTranslationWords, // New parameter
                       ),
                     ],
                   ],

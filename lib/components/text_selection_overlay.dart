@@ -123,7 +123,8 @@ class TextSelectionOverlay extends StatelessWidget {
   final void Function(DragUpdateDetails) onHandlePanUpdate;
   final void Function(DragEndDetails) onHandlePanEnd;
   final void Function(String) onTranslate;
-  final int maxTranslationCharacters;
+  // This parameter now represents the maximum number of words
+  final int maxTranslationWords;
 
   const TextSelectionOverlay({
     super.key,
@@ -143,7 +144,7 @@ class TextSelectionOverlay extends StatelessWidget {
     required this.onHandlePanUpdate,
     required this.onHandlePanEnd,
     required this.onTranslate,
-    required this.maxTranslationCharacters,
+    required this.maxTranslationWords, // Changed to maxTranslationWords
   });
 
   Widget _dragHandle(bool isLeft, Offset currentPosition) {
@@ -365,9 +366,10 @@ class TextSelectionOverlay extends StatelessWidget {
     actionBarLeft = max(0.0, actionBarLeft);
     actionBarLeft = min(MediaQuery.of(context).size.width - 140, actionBarLeft); // Adjusted for wider button
 
-    final String selectedText = selectedWords.map((e) => e.text).join(' ');
-    final int charCount = selectedText.length;
-    final bool isOverLimit = charCount > maxTranslationCharacters;
+    // Calculate the number of selected words directly from the list length
+    final int wordCount = selectedWords.length;
+    // Check if the number of selected words exceeds the maximum allowed
+    final bool isOverLimit = wordCount > maxTranslationWords;
 
     return Stack(
       children: [
@@ -431,7 +433,7 @@ class TextSelectionOverlay extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
-                          '$charCount/$maxTranslationCharacters',
+                          '$wordCount/$maxTranslationWords', // Display word count / max words
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,

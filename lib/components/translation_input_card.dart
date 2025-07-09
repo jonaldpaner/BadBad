@@ -27,7 +27,11 @@ class TranslationInputCard extends StatefulWidget {
 }
 
 class _TranslationInputCardState extends State<TranslationInputCard> {
-  final int _maxLength = 70;
+  final int _maxWords = 3;
+
+  List<String> _getWords(String text) {
+    return text.trim().split(RegExp(r'\s+')).where((word) => word.isNotEmpty).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,8 +59,7 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
               children: [
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: widget.languageSelector ??
-                      const LanguageSelector(),
+                  child: widget.languageSelector ?? const LanguageSelector(),
                 ),
                 const SizedBox(height: 4),
                 Stack(
@@ -64,45 +67,60 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
                   children: [
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxHeight: 150),
-                      child: TextFormField(
-                        controller: widget.textController,
-                        focusNode: widget.focusNode,
-                        maxLength: _maxLength,
-                        maxLines: null,
-                        keyboardType: TextInputType.multiline,
-                        scrollPhysics: const BouncingScrollPhysics(),
-                        cursorColor: isDark ? Colors.white : Colors.black,
-                        decoration: InputDecoration(
-                          counterText: '',
-                          hintText: 'Type or paste text here',
-                          hintStyle: TextStyle(
-                            color: isDark ? Colors.white54 : Colors.black45,
-                          ),
-                          filled: true,
-                          fillColor: isDark
-                              ? Colors.grey[900]
-                              : const Color(0xFFEBEEF1),
-                          border: const OutlineInputBorder(
-                            borderRadius:
-                            BorderRadius.all(Radius.circular(12)),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding:
-                          const EdgeInsets.fromLTRB(16, 16, 16, 28),
-                        ),
-                        style: TextStyle(
-                          color: isDark ? Colors.white : Colors.black,
-                        ),
+                      child: ValueListenableBuilder<TextEditingValue>(
+                        valueListenable: widget.textController,
+                        builder: (context, value, _) {
+                          final words = _getWords(value.text);
+                          final isLimitReached = words.length >= _maxWords;
+
+                          return TextFormField(
+                            controller: widget.textController,
+                            focusNode: widget.focusNode,
+                            maxLines: null,
+                            keyboardType: TextInputType.multiline,
+                            scrollPhysics: const BouncingScrollPhysics(),
+                            cursorColor: isDark ? Colors.white : Colors.black,
+                            onChanged: (text) {
+                              final words = _getWords(text);
+                              if (words.length > _maxWords) {
+                                final limitedText = words.sublist(0, _maxWords).join(' ');
+                                widget.textController.text = limitedText;
+                                widget.textController.selection = TextSelection.fromPosition(
+                                  TextPosition(offset: limitedText.length),
+                                );
+                              }
+                              setState(() {});
+                            },
+                            decoration: InputDecoration(
+                              counterText: '',
+                              hintText: 'Type up to 3 words here',
+                              hintStyle: TextStyle(
+                                color: isDark ? Colors.white54 : Colors.black45,
+                              ),
+                              filled: true,
+                              fillColor: isDark
+                                  ? Colors.grey[900]
+                                  : const Color(0xFFEBEEF1),
+                              border: const OutlineInputBorder(
+                                borderRadius: BorderRadius.all(Radius.circular(12)),
+                                borderSide: BorderSide.none,
+                              ),
+                              contentPadding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
+                            ),
+                            style: TextStyle(
+                              color: isDark ? Colors.white : Colors.black,
+                            ),
+                          );
+                        },
                       ),
                     ),
                     ValueListenableBuilder<TextEditingValue>(
                       valueListenable: widget.textController,
                       builder: (context, value, _) {
-                        final currentLength = value.text.length;
-                        final isLimitReached = currentLength >= _maxLength;
+                        final words = _getWords(value.text);
+                        final isLimitReached = words.length >= _maxWords;
                         return Padding(
-                          padding: const EdgeInsets.only(
-                              bottom: 8, right: 12),
+                          padding: const EdgeInsets.only(bottom: 8, right: 12),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -116,7 +134,7 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
                                   ),
                                 ),
                               Text(
-                                '$currentLength/$_maxLength',
+                                '${words.length}/$_maxWords words',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: isLimitReached
@@ -141,18 +159,12 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Material(
-                      color: isDark
-                          ? Colors.grey[850]
-                          : const Color(0xA3CCD6DA),
+                      color: isDark ? Colors.grey[850] : const Color(0xA3CCD6DA),
                       shape: const CircleBorder(),
                       child: InkWell(
                         customBorder: const CircleBorder(),
-                        splashColor:
-                        (isDark ? Colors.white : Colors.black)
-                            .withOpacity(0.1),
-                        highlightColor:
-                        (isDark ? Colors.white : Colors.black)
-                            .withOpacity(0.05),
+                        splashColor: (isDark ? Colors.white : Colors.black).withOpacity(0.1),
+                        highlightColor: (isDark ? Colors.white : Colors.black).withOpacity(0.05),
                         onTap: widget.onCameraPressed,
                         child: const Padding(
                           padding: EdgeInsets.all(10),
@@ -164,7 +176,11 @@ class _TranslationInputCardState extends State<TranslationInputCard> {
                       ),
                     ),
                     ElevatedButton.icon(
-                      onPressed: widget.onTranslatePressed,
+                      onPressed: () {
+                        widget.onTranslatePressed();
+                        widget.textController.clear();
+                        setState(() {}); // Updates word count and UI
+                      },
                       icon: const Icon(
                         Icons.auto_awesome_outlined,
                         color: Colors.white,
