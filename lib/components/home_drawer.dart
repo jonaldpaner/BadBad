@@ -3,6 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ahhhtest/pages/favorites_page.dart';
 import 'package:ahhhtest/pages/history_page.dart';
 
+import '../pages/predefined_phrases_page.dart';
+
 class HomeDrawer extends StatelessWidget {
   final User? currentUser;
   final Future<void> Function() onLogout;
@@ -91,6 +93,21 @@ class HomeDrawer extends StatelessWidget {
                 });
               },
             ),
+            ListTile(
+              leading: Icon(Icons.translate_rounded, color: theme.iconTheme.color),
+              title: Text('Learn', style: theme.textTheme.bodyLarge),
+              onTap: () {
+                Navigator.pop(context);
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PredefinedPhrasesPage()),
+                  );
+                });
+              },
+            ),
+
+
             if (_shouldShowLogoutButton)
               ListTile(
                 leading: Icon(Icons.logout, color: theme.iconTheme.color),
