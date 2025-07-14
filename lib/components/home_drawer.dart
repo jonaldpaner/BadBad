@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:ahhhtest/pages/favorites_page.dart';
 import 'package:ahhhtest/pages/history_page.dart';
 
+import '../pages/my_contribution_page.dart';
 import '../pages/predefined_phrases_page.dart';
 
 class HomeDrawer extends StatelessWidget {
@@ -106,7 +107,19 @@ class HomeDrawer extends StatelessWidget {
                 });
               },
             ),
-
+            ListTile(
+              leading: Icon(Icons.edit_note_rounded, color: theme.iconTheme.color),
+              title: Text('Contribution', style: theme.textTheme.bodyLarge),
+              onTap: () {
+                Navigator.pop(context);
+                Future.delayed(const Duration(milliseconds: 200), () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MyContributionPage()),
+                  );
+                });
+              },
+            ),
 
             if (_shouldShowLogoutButton)
               ListTile(
@@ -126,6 +139,7 @@ class HomeDrawer extends StatelessWidget {
                   }
                 },
               ),
+
           ],
         ),
       ),
