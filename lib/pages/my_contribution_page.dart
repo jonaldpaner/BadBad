@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
@@ -121,13 +122,20 @@ class _MyContributionPageState extends State<MyContributionPage> {
         final textColor = theme.textTheme.bodyLarge?.color ?? Colors.black;
         bool showAudioError = false;
 
+        // Timer-related state
+        bool isRecording = false;
+        Duration recordingDuration = Duration.zero;
+        Timer? recordingTimer;
+
         return StatefulBuilder(
           builder: (context, setState) {
+            final AudioPlayer previewPlayer = AudioPlayer();
+            bool isPreviewPlaying = false;
             return Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              insetPadding: const EdgeInsets.symmetric(horizontal:16), // reduces default margins
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16),
               child: Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
@@ -158,9 +166,8 @@ class _MyContributionPageState extends State<MyContributionPage> {
                                   borderSide: BorderSide(color: primaryColor),
                                 ),
                               ),
-                              validator: (value) => (value == null || value.trim().isEmpty)
-                                  ? 'Required'
-                                  : null,
+                              validator: (value) =>
+                              (value == null || value.trim().isEmpty) ? 'Required' : null,
                             ),
                             const SizedBox(height: 12),
                             TextFormField(
@@ -176,9 +183,8 @@ class _MyContributionPageState extends State<MyContributionPage> {
                                   borderSide: BorderSide(color: primaryColor),
                                 ),
                               ),
-                              validator: (value) => (value == null || value.trim().isEmpty)
-                                  ? 'Required'
-                                  : null,
+                              validator: (value) =>
+                              (value == null || value.trim().isEmpty) ? 'Required' : null,
                             ),
                             const SizedBox(height: 16),
                             Row(
@@ -221,8 +227,12 @@ class _MyContributionPageState extends State<MyContributionPage> {
                                       backgroundColor: Colors.deepPurple,
                                       foregroundColor: Colors.white,
                                     ),
-                                    icon: Icon(_recorder.isRecording ? Icons.stop : Icons.mic),
-                                    label: Text(_recorder.isRecording ? 'Stop' : 'Record'),
+                                    icon: Icon(isRecording ? Icons.stop : Icons.mic),
+                                    label: Text(
+                                      isRecording
+                                          ? '${recordingDuration.inMinutes.remainder(60).toString().padLeft(2, '0')}:${recordingDuration.inSeconds.remainder(60).toString().padLeft(2, '0')}'
+                                          : 'Record',
+                                    ),
                                     onPressed: () async {
                                       final micStatus = await Permission.microphone.request();
                                       if (!micStatus.isGranted) {
@@ -232,7 +242,7 @@ class _MyContributionPageState extends State<MyContributionPage> {
                                         return;
                                       }
 
-                                      if (!_recorder.isRecording) {
+                                      if (!isRecording) {
                                         final tempDir = await getTemporaryDirectory();
                                         final recordPath =
                                             '${tempDir.path}/recorded_${DateTime.now().millisecondsSinceEpoch}.m4a';
@@ -240,17 +250,28 @@ class _MyContributionPageState extends State<MyContributionPage> {
                                           toFile: recordPath,
                                           codec: Codec.aacMP4,
                                         );
-                                        setState(() {
-                                          audioPath = null;
+                                        audioPath = null;
+                                        isRecording = true;
+                                        recordingDuration = Duration.zero;
+
+                                        recordingTimer?.cancel();
+                                        recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+                                          setState(() {
+                                            recordingDuration += const Duration(seconds: 1);
+                                          });
                                         });
+
+                                        setState(() {});
                                       } else {
                                         final path = await _recorder.stopRecorder();
-                                        setState(() {
-                                          audioPath = path;
-                                        });
-                                      }
+                                        audioPath = path;
+                                        isRecording = false;
 
-                                      setState(() {}); // Trigger UI update
+                                        recordingTimer?.cancel();
+                                        recordingTimer = null;
+
+                                        setState(() {});
+                                      }
                                     },
                                   ),
                                 ),
@@ -265,11 +286,41 @@ class _MyContributionPageState extends State<MyContributionPage> {
                               maxLines: 1,
                               style: TextStyle(
                                 color: showAudioError ? Colors.red : null,
-                                fontWeight: showAudioError
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
+                                fontWeight: showAudioError ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),
+                            if (audioPath != null)
+                              ElevatedButton.icon(
+                                icon: Icon(isPreviewPlaying ? Icons.pause : Icons.play_arrow),
+                                label: Text(isPreviewPlaying ? 'Pause Recording' : 'Play Recording'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.grey.shade800,
+                                  foregroundColor: Colors.white,
+                                ),
+                                onPressed: () async {
+                                  if (isPreviewPlaying) {
+                                    await previewPlayer.pause();
+                                    setState(() => isPreviewPlaying = false);
+                                  } else {
+                                    try {
+                                      await previewPlayer.setFilePath(audioPath!);
+                                      await previewPlayer.play();
+                                      setState(() => isPreviewPlaying = true);
+
+                                      previewPlayer.playerStateStream.listen((state) {
+                                        if (state.processingState == ProcessingState.completed) {
+                                          setState(() => isPreviewPlaying = false);
+                                        }
+                                      });
+                                    } catch (e) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(content: Text('Error playing recording: $e')),
+                                      );
+                                    }
+                                  }
+                                },
+                              ),
+
                           ],
                         ),
                       ),
@@ -279,7 +330,11 @@ class _MyContributionPageState extends State<MyContributionPage> {
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
-                          onPressed: () => Navigator.pop(context),
+                          onPressed: () {
+                            previewPlayer.dispose();
+                            recordingTimer?.cancel();
+                            Navigator.pop(context);
+                          },
                           child: Text(
                             'Cancel',
                             style: TextStyle(color: textColor.withOpacity(0.7)),
@@ -297,6 +352,7 @@ class _MyContributionPageState extends State<MyContributionPage> {
                               setState(() => showAudioError = true);
                             }
                             if (isValid && isAudioValid) {
+                              recordingTimer?.cancel();
                               Navigator.of(context).pop({
                                 'user': user.uid,
                                 'ata': ataController.text.trim(),
@@ -320,6 +376,7 @@ class _MyContributionPageState extends State<MyContributionPage> {
         );
       },
     );
+
 
     if (result != null) {
       final isEditing = editIndex != null;
