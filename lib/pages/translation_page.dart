@@ -68,7 +68,7 @@ class _TranslationPageState extends State<TranslationPage> {
 
     try {
       final encodedMessage = Uri.encodeComponent(message);
-      final url = Uri.parse('https://electric-dassie-vertically.ngrok-free.app/translate/$apiEndpoint?message=$encodedMessage');
+      final url = Uri.parse('https://badbad-api.onrender.com/translate/$apiEndpoint?message=$encodedMessage');
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
