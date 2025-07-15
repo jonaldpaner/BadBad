@@ -254,6 +254,7 @@ class _MyContributionPageState extends State<MyContributionPage> {
                                         return;
                                       }
 
+
                                       if (!isRecording) {
                                         final tempDir = await getTemporaryDirectory();
                                         final recordPath =
@@ -290,6 +291,7 @@ class _MyContributionPageState extends State<MyContributionPage> {
                               ],
                             ),
                             const SizedBox(height: 8),
+
                             Text(
                               audioPath != null
                                   ? path.basename(audioPath!)
@@ -301,36 +303,45 @@ class _MyContributionPageState extends State<MyContributionPage> {
                                 fontWeight: showAudioError ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),
-                            if (audioPath != null)
+
+                            if (audioPath != null || (existingAudioName != null && isEditing))
                               ElevatedButton.icon(
                                 icon: Icon(isPreviewPlaying ? Icons.pause : Icons.play_arrow),
-                                label: Text(isPreviewPlaying ? 'Pause Recording' : 'Play Recording'),
+                                label: Text(isPreviewPlaying ? 'Pause Audio' : 'Play Audio'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.grey.shade800,
                                   foregroundColor: Colors.white,
                                 ),
-                                onPressed: () async {
-                                  if (isPreviewPlaying) {
-                                    await previewPlayer.pause();
-                                    setState(() => isPreviewPlaying = false);
-                                  } else {
+                                  onPressed: () async {
                                     try {
-                                      await previewPlayer.setFilePath(audioPath!);
-                                      await previewPlayer.play();
-                                      setState(() => isPreviewPlaying = true);
-
-                                      previewPlayer.playerStateStream.listen((state) {
-                                        if (state.processingState == ProcessingState.completed) {
-                                          setState(() => isPreviewPlaying = false);
+                                      if (isPreviewPlaying) {
+                                        await previewPlayer.pause();
+                                        setState(() => isPreviewPlaying = false);
+                                      } else {
+                                        if (audioPath != null) {
+                                          await previewPlayer.setFilePath(audioPath!);
+                                        } else {
+                                          final fullAudioUrl = contributions[editIndex!]['audio']!;
+                                          debugPrint("🎧 Playing from: $fullAudioUrl");
+                                          await previewPlayer.setUrl(fullAudioUrl);
                                         }
-                                      });
+
+                                        await previewPlayer.play();
+                                        setState(() => isPreviewPlaying = true);
+
+                                        previewPlayer.playerStateStream.listen((state) {
+                                          if (state.processingState == ProcessingState.completed) {
+                                            setState(() => isPreviewPlaying = false);
+                                          }
+                                        });
+                                      }
                                     } catch (e) {
+                                      debugPrint("Audio error: $e");
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text('Error playing recording: $e')),
+                                        SnackBar(content: Text('Error playing audio: $e')),
                                       );
                                     }
                                   }
-                                },
                               ),
 
                           ],
@@ -359,7 +370,16 @@ class _MyContributionPageState extends State<MyContributionPage> {
                           ),
                           onPressed: () {
                             final isValid = _formKey.currentState!.validate();
-                            final isAudioValid = audioPath != null;
+
+                            final selectedAudio = audioPath ??
+                                (isEditing
+                                    ? Uri.decodeFull(
+                                    Uri.parse(contributions[editIndex!]['audio']!)
+                                        .queryParameters['audio_url'] ?? '')
+                                    : null);
+
+                            final isAudioValid = selectedAudio != null && selectedAudio.isNotEmpty;
+
                             if (!isAudioValid) {
                               setState(() => showAudioError = true);
                             }
@@ -369,7 +389,7 @@ class _MyContributionPageState extends State<MyContributionPage> {
                                 'user': user.uid,
                                 'ata': ataController.text.trim(),
                                 'english': englishController.text.trim(),
-                                'audio': audioPath!,
+                                'audio': selectedAudio!,
                               });
                             }
                           },
