@@ -37,8 +37,13 @@ class _PredefinedPhrasesPageState extends State<PredefinedPhrasesPage> {
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
+
         setState(() {
-          phrases = data.map((item) => item as Map<String, dynamic>).toList();
+          // Filter only active phrases
+          phrases = data
+              .where((item) => item['status'] == 'active')
+              .map((item) => item as Map<String, dynamic>)
+              .toList();
           isLoading = false;
         });
       } else {

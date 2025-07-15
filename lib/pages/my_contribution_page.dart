@@ -34,6 +34,19 @@ class _MyContributionPageState extends State<MyContributionPage> {
     _loadUserPhrases();
   }
 
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'active':
+        return Colors.green;
+      case 'pending':
+        return Colors.orange;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
   Future<void> _initRecorder() async {
     await Permission.microphone.request();
     await _recorder.openRecorder();
@@ -50,15 +63,14 @@ class _MyContributionPageState extends State<MyContributionPage> {
       final response = await http.get(uri);
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
-        final List<Map<String, String>> loaded = data.map<Map<String, String>>((
-          item,
-        ) {
+        final List<Map<String, String>> loaded = data.map<Map<String, String>>((item) {
           return {
             'id': item['id'].toString(),
             'ata': item['ata_phrase'] ?? '',
             'english': item['eng_phrase'] ?? '',
+            'status': item['status'] ?? '',
             'audio':
-                'https://electric-dassie-vertically.ngrok-free.app/audio-by-url?audio_url=${Uri.encodeComponent(item['audio_url'] ?? '')}',
+            'https://electric-dassie-vertically.ngrok-free.app/audio-by-url?audio_url=${Uri.encodeComponent(item['audio_url'] ?? '')}',
           };
         }).toList();
         setState(
@@ -556,13 +568,25 @@ class _MyContributionPageState extends State<MyContributionPage> {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    subtitle: Text(
-                      phrase['english'] ?? '',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.textTheme.bodyLarge?.color?.withOpacity(
-                          0.9,
+                    subtitle: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          phrase['english'] ?? '',
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            color: theme.textTheme.bodyLarge?.color?.withOpacity(0.9),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Status: ${phrase['status']?.toUpperCase() ?? 'UNKNOWN'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: _getStatusColor(phrase['status']),
+                          ),
+                        ),
+                      ],
                     ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
