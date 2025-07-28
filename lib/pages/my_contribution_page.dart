@@ -27,11 +27,18 @@ class _MyContributionPageState extends State<MyContributionPage> {
   final FlutterSoundRecorder _recorder = FlutterSoundRecorder();
   int? currentlyPlayingIndex;
 
+  // Dynamic categories list
+  List<String> availableCategories = []; // Will be populated from API
+  bool _isLoadingCategories = true;
+
+
   @override
   void initState() {
     super.initState();
     _initRecorder();
-    _loadUserPhrases();
+    _fetchCategories().then((_) {
+      _loadUserPhrases();
+    });
   }
 
   Color _getStatusColor(String? status) {
@@ -52,6 +59,53 @@ class _MyContributionPageState extends State<MyContributionPage> {
     await _recorder.openRecorder();
   }
 
+  // New method to fetch categories
+  Future<void> _fetchCategories() async {
+    setState(() {
+      _isLoadingCategories = true;
+    });
+    try {
+      final response = await http.get(Uri.parse('https://electric-dassie-vertically.ngrok-free.app/categories')); // Assuming this endpoint exists
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          availableCategories = List<String>.from(data);
+          if (!availableCategories.contains('Uncategorized')) {
+            availableCategories.add('Uncategorized');
+          }
+        });
+      } else {
+        debugPrint('Failed to load categories: ${response.body}');
+        setState(() {
+          availableCategories = [
+            'Greetings',
+            'Family & People',
+            'Health & Emergency',
+            'Food & Eating',
+            'Uncategorized',
+          ];
+        });
+      }
+    } catch (e) {
+      debugPrint('Error fetching categories: $e');
+      // Fallback to a default set on error
+      setState(() {
+        availableCategories = [
+          'Greetings',
+          'Family & People',
+          'Health & Emergency',
+          'Food & Eating',
+          'Uncategorized',
+        ];
+      });
+    } finally {
+      setState(() {
+        _isLoadingCategories = false;
+      });
+    }
+  }
+
+
   Future<void> _loadUserPhrases() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null || user.isAnonymous) return;
@@ -71,10 +125,12 @@ class _MyContributionPageState extends State<MyContributionPage> {
             'status': item['status'] ?? '',
             'audio':
             'https://electric-dassie-vertically.ngrok-free.app/audio-by-url?audio_url=${Uri.encodeComponent(item['audio_url'] ?? '')}',
+            'category': item['category'] ?? 'Uncategorized',
+
           };
         }).toList();
         setState(
-          () => contributions
+              () => contributions
             ..clear()
             ..addAll(loaded),
         );
@@ -123,6 +179,14 @@ class _MyContributionPageState extends State<MyContributionPage> {
       final decodedAudioUrl = Uri.decodeFull(uri.queryParameters['audio_url'] ?? '');
       existingAudioName = Uri.parse(decodedAudioUrl).pathSegments.last;
     }
+    String rawCategory = isEditing
+        ? contributions[editIndex!]['category'] ?? 'Uncategorized'
+        : 'Uncategorized';
+
+    String selectedCategory = availableCategories.firstWhere(
+          (cat) => cat.toLowerCase() == rawCategory.toLowerCase(),
+      orElse: () => 'Uncategorized',
+    );
 
     final _formKey = GlobalKey<FormState>();
     bool isRecording = false;
@@ -198,6 +262,29 @@ class _MyContributionPageState extends State<MyContributionPage> {
                               validator: (value) =>
                               (value == null || value.trim().isEmpty) ? 'Required' : null,
                             ),
+                            // Use dynamically fetched categories here
+                            DropdownButtonFormField<String>(
+                              value: selectedCategory,
+                              decoration: InputDecoration(
+                                labelText: 'Category',
+                                labelStyle: TextStyle(color: textColor.withOpacity(0.7)),
+                                enabledBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(color: textColor.withOpacity(0.4)),
+                                ),
+                                focusedBorder: UnderlineInputBorder(
+                                  borderSide: BorderSide(color: primaryColor),
+                                ),
+                              ),
+                              items: availableCategories
+                                  .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
+                                  .toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedCategory = value!;
+                                });
+                              },
+                            ),
+
                             const SizedBox(height: 16),
                             Row(
                               children: [
@@ -306,12 +393,12 @@ class _MyContributionPageState extends State<MyContributionPage> {
 
                             if (audioPath != null || (existingAudioName != null && isEditing))
                               ElevatedButton.icon(
-                                icon: Icon(isPreviewPlaying ? Icons.pause : Icons.play_arrow),
-                                label: Text(isPreviewPlaying ? 'Pause Audio' : 'Play Audio'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey.shade800,
-                                  foregroundColor: Colors.white,
-                                ),
+                                  icon: Icon(isPreviewPlaying ? Icons.pause : Icons.play_arrow),
+                                  label: Text(isPreviewPlaying ? 'Pause Audio' : 'Play Audio'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey.shade800,
+                                    foregroundColor: Colors.white,
+                                  ),
                                   onPressed: () async {
                                     try {
                                       if (isPreviewPlaying) {
@@ -390,6 +477,7 @@ class _MyContributionPageState extends State<MyContributionPage> {
                                 'ata': ataController.text.trim(),
                                 'english': englishController.text.trim(),
                                 'audio': selectedAudio!,
+                                'category': selectedCategory,
                               });
                             }
                           },
@@ -419,6 +507,7 @@ class _MyContributionPageState extends State<MyContributionPage> {
         ata: result['ata']!,
         english: result['english']!,
         audioPath: result['audio']!,
+        category: result['category']!,
       );
       await _loadUserPhrases();
     }
@@ -430,6 +519,7 @@ class _MyContributionPageState extends State<MyContributionPage> {
     required String ata,
     required String english,
     required String audioPath,
+    required String category, // Add category parameter
   }) async {
     final isEditing = id != null;
     final uri = Uri.parse(
@@ -443,6 +533,7 @@ class _MyContributionPageState extends State<MyContributionPage> {
     request.fields['user'] = user;
     request.fields['ata_phrase'] = ata;
     request.fields['eng_phrase'] = english;
+    request.fields['category'] = category; // Use the dynamic category
 
     if (audioPath.isNotEmpty && File(audioPath).existsSync()) {
       final mimeType = lookupMimeType(audioPath) ?? 'audio/mpeg';
@@ -458,7 +549,9 @@ class _MyContributionPageState extends State<MyContributionPage> {
           contentType: MediaType(mimeSplit[0], mimeSplit[1]),
         ),
       );
+    } else if (isEditing && !audioPath.startsWith('http')) {
     }
+
 
     try {
       final response = await request.send();
@@ -489,15 +582,15 @@ class _MyContributionPageState extends State<MyContributionPage> {
       final response = await http.delete(uri);
       if (response.statusCode == 200) {
         setState(() => contributions.removeAt(index));
-        debugPrint("✅ Deleted phrase $id");
+        debugPrint("Deleted phrase $id");
       } else {
-        debugPrint("❌ Failed to delete: ${response.body}");
+        debugPrint("Failed to delete: ${response.body}");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Delete failed: ${response.body}")),
         );
       }
     } catch (e) {
-      debugPrint("❌ Delete error: $e");
+      debugPrint("Delete error: $e");
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("Delete error: $e")));
@@ -520,10 +613,10 @@ class _MyContributionPageState extends State<MyContributionPage> {
       _player.playerStateStream
           .firstWhere(
             (state) => state.processingState == ProcessingState.completed,
-          )
+      )
           .then((_) {
-            setState(() => currentlyPlayingIndex = null);
-          });
+        setState(() => currentlyPlayingIndex = null);
+      });
     } catch (e) {
       setState(() => currentlyPlayingIndex = null);
       ScaffoldMessenger.of(
@@ -542,7 +635,7 @@ class _MyContributionPageState extends State<MyContributionPage> {
         leading: IconButton(
           icon: Icon(
             Icons.arrow_back_ios_new_rounded,
-            size: 20,
+            size: 25,
             color: theme.iconTheme.color,
           ),
           onPressed: () => Navigator.of(context).pop(),
@@ -551,90 +644,105 @@ class _MyContributionPageState extends State<MyContributionPage> {
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: primaryColor,
-        onPressed: () => _showAddOrEditDialog(),
+        onPressed: _isLoadingCategories // Disable button while categories are loading
+            ? null
+            : () => _showAddOrEditDialog(),
         tooltip: 'Add Phrase',
-        child: const Icon(Icons.add, color: Colors.white),
+        child: _isLoadingCategories
+            ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))
+            : const Icon(Icons.add, color: Colors.white),
       ),
-      body: contributions.isEmpty
+      body: _isLoadingCategories
+          ? const Center(child: CircularProgressIndicator()) // Show loading indicator for categories
+          : contributions.isEmpty
           ? Center(
-              child: Text(
-                'You have not added any phrases yet.',
-                style: theme.textTheme.bodyLarge,
-              ),
-            )
+        child: Text(
+          'You have not added any phrases yet.',
+          style: theme.textTheme.bodyLarge,
+        ),
+      )
           : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: contributions.length,
-              itemBuilder: (context, index) {
-                final phrase = contributions[index];
-                final hasAudio = phrase.containsKey('audio');
-                return Card(
-                  color: currentlyPlayingIndex == index
-                      ? theme.colorScheme.primary.withOpacity(0.1)
-                      : theme.cardColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  margin: const EdgeInsets.only(bottom: 12),
-                  elevation: theme.brightness == Brightness.dark ? 2 : 4,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 12,
-                      horizontal: 16,
-                    ),
-                    title: Text(
-                      phrase['ata'] ?? '',
-                      style: theme.textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          phrase['english'] ?? '',
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.textTheme.bodyLarge?.color?.withOpacity(0.9),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Status: ${phrase['status']?.toUpperCase() ?? 'UNKNOWN'}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: _getStatusColor(phrase['status']),
-                          ),
-                        ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (hasAudio)
-                          IconButton(
-                            icon: const Icon(Icons.volume_up_rounded, size: 20),
-                            tooltip: 'Play',
-                            onPressed: () =>
-                                _playAudio(phrase['audio']!, index),
-                          ),
-                        IconButton(
-                          icon: const Icon(Icons.edit, size: 20),
-                          tooltip: 'Edit',
-                          onPressed: () =>
-                              _showAddOrEditDialog(editIndex: index),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20),
-                          tooltip: 'Delete',
-                          onPressed: () => _deletePhrase(index),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+        padding: const EdgeInsets.all(16),
+        itemCount: contributions.length,
+        itemBuilder: (context, index) {
+          final phrase = contributions[index];
+          final hasAudio = phrase.containsKey('audio');
+          return Card(
+            color: currentlyPlayingIndex == index
+                ? theme.colorScheme.primary.withOpacity(0.1)
+                : theme.cardColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
+            margin: const EdgeInsets.only(bottom: 12),
+            elevation: theme.brightness == Brightness.dark ? 2 : 4,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 12,
+                horizontal: 16,
+              ),
+              title: Text(
+                phrase['ata'] ?? '',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    phrase['english'] ?? '',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.textTheme.bodyLarge?.color?.withOpacity(0.9),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Status: ${phrase['status']?.toUpperCase() ?? 'UNKNOWN'}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _getStatusColor(phrase['status']),
+                    ),
+                  ),
+                  Text(
+                    'Category: ${phrase['category'] ?? 'Uncategorized'}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+
+                ],
+              ),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (hasAudio)
+                    IconButton(
+                      icon: const Icon(Icons.volume_up_rounded, size: 20),
+                      tooltip: 'Play',
+                      onPressed: () =>
+                          _playAudio(phrase['audio']!, index),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.edit, size: 20),
+                    tooltip: 'Edit',
+                    onPressed: () =>
+                        _showAddOrEditDialog(editIndex: index),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    tooltip: 'Delete',
+                    onPressed: () => _deletePhrase(index),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }
